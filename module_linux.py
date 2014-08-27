@@ -56,34 +56,6 @@ class GetLinuxData():
             print str(self.machine_name) + ': ' + str(err)
             return  None
         
-    def post(self, params, what):
-        print 'POST'
-        if what == 'device': THE_URL = self.D42_API_URL + '/api/device/'
-        elif what == 'ip': THE_URL = self.D42_API_URL + '/api/ip/'
-        elif what == 'mac': THE_URL = self.D42_API_URL + '/api/1.0/macs/'
-        data= urllib.urlencode(params)
-        headers = {
-                'Authorization' : 'Basic '+ b64encode(self.D42_USERNAME + ':' + self.D42_PASSWORD),
-                'Content-Type' : 'application/x-www-form-urlencoded'
-            }
-        req = urllib2.Request(THE_URL, data, headers)
-        if self.DEBUG: print '---REQUEST---',req.get_full_url()
-        if self.DEBUG: print req.headers
-        if self.DEBUG: print req.data
-        try:
-            r = urllib2.urlopen(req)
-            if r.getcode() == 200:
-                obj = r.read()
-                msg = json.loads(obj)
-                return True, msg
-            else:
-                return False, r.getcode()
-        except urllib2.HTTPError, e:
-            error_response = e.read()
-            if self.DEBUG: print e.code, error_response
-            return False, error_response
-        except Exception,e:
-            return False, str(e)
 
     def to_ascii(self, s):
         try: return s.encode('ascii','ignore')
@@ -102,7 +74,7 @@ class GetLinuxData():
         data_err = stderr.readlines()
         data_out = stdout.readlines()
         device_name = None
-        print 'hostname : %s' % data_out 
+        #print 'hostname : %s' % data_out 
         if not data_err:
             if self.IGNORE_DOMAIN: device_name = self.to_ascii(data_out[0].rstrip()).split('.')[0]
             else: device_name = to_ascii(data_out[0].rstrip())
@@ -124,7 +96,7 @@ class GetLinuxData():
             stdin.flush()
             data_err = stderr.readlines()
             data_out = stdout.readlines()
-            print 'uuid : %s' % data_out 
+            #print 'uuid : %s' % data_out 
             if not data_err:
                 if len(data_out) > 0:
                     uuid = data_out[0].rstrip()
@@ -140,7 +112,7 @@ class GetLinuxData():
                 stdin.flush()
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
-                print 'serial : %s' % data_out 
+                #print 'serial : %s' % data_out 
                 if not data_err:
                     if len(data_out) > 0:
                         serial_no = data_out[0].rstrip()
@@ -154,7 +126,7 @@ class GetLinuxData():
             stdin.flush()
             data_err = stderr.readlines()
             data_out = stdout.readlines()
-            print 'Manufacturer : %s' % data_out 
+            #print 'Manufacturer : %s' % data_out 
             if not data_err:
                 if len(data_out) > 0:
                     manufacturer = data_out[0].rstrip()
@@ -168,7 +140,7 @@ class GetLinuxData():
                             self.devargs.update({'manufacturer': self.to_ascii(manufacturer).replace("# SMBIOS     implementations newer than version 2.6 are not\n# fully supported by     this version of dmidecode.\n", "").strip()})
                             
                             stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-product-name")
-                            print 'Product : %s' % data_out 
+                            #print 'Product : %s' % data_out 
                             stdin.write('%s\n' % self.password)
                             stdin.flush()
                             data_err = stderr.readlines()
@@ -188,7 +160,7 @@ class GetLinuxData():
                 stdin, stdout, stderr = self.ssh.exec_command("/usr/bin/python -m platform")
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
-                print 'Platform : %s' % data_out 
+                #print 'Platform : %s' % data_out 
                 if not data_err:
                     if len(data_out) > 0:
                         release = data_out[0].rstrip()
@@ -206,7 +178,7 @@ class GetLinuxData():
                 stdin, stdout, stderr = self.ssh.exec_command("grep MemTotal /proc/meminfo")
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
-                print 'RAM : %s' % data_out 
+                #print 'RAM : %s' % data_out 
                 if not data_err:
                     memory_raw = data_out[0].replace(' ', '').replace('MemTotal:','').replace('kB','')
                     if memory_raw and memory_raw != '':
@@ -248,7 +220,7 @@ class GetLinuxData():
                 else:
                     if self.DEBUG:
                         print data_err
-                print 'CPUs: %s\t Cores: %s\tSpeed: %s' % (str(cpucount), str(corecount), str(speed))
+                #print 'CPUs: %s\t Cores: %s\tSpeed: %s' % (str(cpucount), str(corecount), str(speed))
         
         self.allData.append(self.devargs)
             
@@ -261,7 +233,7 @@ class GetLinuxData():
             for rec in data_out:
                 nic = rec.split('   ')[0]
                 if nic not in ('', ' ', '\n', 'lo'):
-                    print nic
+                    #print nic
                     nics.append(nic)
         else:
             if self.DEBUG:
@@ -269,7 +241,7 @@ class GetLinuxData():
                 
         if nics:
             for nic in nics:
-                print 'NIC: %s' %nic
+                #print 'NIC: %s' %nic
                 nicData      = {}
                 nicData_v6 = {}
                 macData    = {}
@@ -288,18 +260,18 @@ class GetLinuxData():
                     for rec in data_out:
                         if 'HWaddr'in rec:
                             mac = rec.split('HWaddr')[1].strip()
-                            print mac
+                            #print mac
                             nicData.update({'macaddress':mac})
                             nicData_v6.update({'macaddress':mac})
                             macData.update({'macaddress':mac})
                         if 'inet addr' in rec:
                             ipv4 = (rec.split(':')[1]).split()[0]
-                            print ipv4
+                            #print ipv4
                             nicData.update({'ipaddress':ipv4})
                             
                         if 'inet6' in rec:
                             ipv6 = (rec.split('addr:')[1].split()[0]).split('/')[0]
-                            print ipv6
+                            #print ipv6
                             nicData_v6.update({'ipaddress':ipv6})
                             
 

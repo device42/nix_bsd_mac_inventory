@@ -79,6 +79,9 @@ def check_os(ip):
     sock.settimeout(float(TIMEOUT))
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    if CREDENTIALS == '':
+        print '\n[!] Cannot work without credentials!\n\tExiting...'
+        sys.exit()
     creds = CREDENTIALS.split(',')
     for cred in creds:
         if cred not in ('', ' ', '\n'):
@@ -193,8 +196,11 @@ def main():
             print msg
             sys.exit()
         else:
-            for ip in ip_scope:
-                q.put(ip)
+            if len(ip_scope) == 1:
+                q.put(ip_scope[0])
+            else:
+                for ip in ip_scope:
+                    q.put(ip)
             while 1:
                 if not q.empty():
                     tcount = threading.active_count()

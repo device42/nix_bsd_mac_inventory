@@ -81,7 +81,6 @@ class IP_Operations():
         # SINGLE IP
         else:
             valid = self.check_valid_ip(self.ipscope)
-            print valid
             if not valid:
                 msg =  '[!] Mailformed target IP.'
                 print msg
