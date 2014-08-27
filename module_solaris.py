@@ -1,12 +1,6 @@
 import sys
 import paramiko
 import util_uploader
-#----------------------------------
-ip    = '192.168.3.102'
-usr  = 'korisnik'
-pwd = 'P@ssw0rd'
-TIMEOUT = 3
-#----------------------------------
 
 
 
