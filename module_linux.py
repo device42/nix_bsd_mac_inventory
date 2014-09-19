@@ -165,9 +165,11 @@ class GetLinuxData():
                     if len(data_out) > 0:
                         release = data_out[0].rstrip()
                         if release and release != '':
+                            self.os    = release.split('-with-')[1].split('-')[0]
+                            self.osver = release.split('-with-')[1].split('-')[1]
                             self.devargs.update({
-                                'os': release.split('-with-')[1].split('-')[0],
-                                'osver': release.split('-with-')[1].split('-')[1],
+                                'os': self.os,
+                                'osver': self.osver
                                 })
                 else:
                     if self.DEBUG:
@@ -223,65 +225,128 @@ class GetLinuxData():
                 #print 'CPUs: %s\t Cores: %s\tSpeed: %s' % (str(cpucount), str(corecount), str(speed))
         
         self.allData.append(self.devargs)
-            
+
+
     def get_IP(self):
-        stdin, stdout, stderr = self.ssh.exec_command("ifconfig")
+        device_name = self.get_name()
+        self.device_name = device_name
+        if self.os == 'fedora' and float(self.osver) >= 20:
+            self.get_fedora_ip()
+        else:
+            stdin, stdout, stderr = self.ssh.exec_command("ifconfig")
+            data_out = stdout.readlines()
+            data_err  = stderr.readlines()
+            nics = []
+            if not data_err:
+                for rec in data_out:
+                    nic = rec.split('   ')[0]
+                    if nic not in ('', ' ', '\n', 'lo'):
+                        #print nic
+                        nics.append(nic)
+            else:
+                if self.DEBUG:
+                    print data_err
+                    
+            if nics:
+                for nic in nics:
+                    #print 'NIC: %s' %nic
+                    nicData      = {}
+                    nicData_v6 = {}
+                    macData    = {}
+                    cmd = 'ifconfig %s' % nic
+                    stdin, stdout, stderr = self.ssh.exec_command(cmd)
+                    data_out = stdout.readlines()
+                    data_err  = stderr.readlines()
+                    if not data_err:
+                        nicData.update({'device':device_name})
+                        nicData_v6.update({'device':device_name})
+                        macData.update({'device':device_name})
+                        nicData.update({'tag':nic})
+                        nicData_v6.update({'tag':nic})
+                        macData.update({'port_name':nic})
+                        for rec in data_out:
+                            if 'HWaddr'in rec:
+                                mac = rec.split('HWaddr')[1].strip()
+                                #print mac
+                                nicData.update({'macaddress':mac})
+                                nicData_v6.update({'macaddress':mac})
+                                macData.update({'macaddress':mac})
+                            if 'inet addr' in rec:
+                                ipv4 = (rec.split(':')[1]).split()[0]
+                                #print ipv4
+                                nicData.update({'ipaddress':ipv4})
+                                
+                            if 'inet6' in rec:
+                                ipv6 = (rec.split('addr:')[1].split()[0]).split('/')[0]
+                                #print ipv6
+                                nicData_v6.update({'ipaddress':ipv6})
+                                
+
+                        self.allData.append(nicData)
+                        self.allData.append(nicData_v6)
+                        self.allData.append(macData)
+                    else:
+                        if self.DEBUG:
+                            print data_err 
+
+    def get_fedora_ip(self):
+        """
+        This function is for fedora > 20 ifconfig output.
+        """
+        addresses = {}
+        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig")
         data_out = stdout.readlines()
         data_err  = stderr.readlines()
-        nics = []
         if not data_err:
+            nics = []
+            tmp = []
             for rec in data_out:
-                nic = rec.split('   ')[0]
-                if nic not in ('', ' ', '\n', 'lo'):
-                    #print nic
-                    nics.append(nic)
-        else:
-            if self.DEBUG:
-                print data_err
-                
-        if nics:
+                if not rec.startswith('    ') and rec !='\n':
+                    if not tmp == []:
+                        nics.append(tmp)
+                  
+                        tmp =[]
+                    tmp.append(rec)
+                else:
+                    tmp.append(rec)
+                    
+            nics.append(tmp)
+            
             for nic in nics:
-                #print 'NIC: %s' %nic
-                nicData      = {}
-                nicData_v6 = {}
-                macData    = {}
-                device_name = self.get_name()
-                cmd = 'ifconfig %s' % nic
-                stdin, stdout, stderr = self.ssh.exec_command(cmd)
-                data_out = stdout.readlines()
-                data_err  = stderr.readlines()
-                if not data_err:
-                    nicData.update({'device':device_name})
-                    nicData_v6.update({'device':device_name})
-                    macData.update({'device':device_name})
-                    nicData.update({'tag':nic})
-                    nicData_v6.update({'tag':nic})
-                    macData.update({'port_name':nic})
-                    for rec in data_out:
-                        if 'HWaddr'in rec:
-                            mac = rec.split('HWaddr')[1].strip()
-                            #print mac
+                nic_name = nic[0].split(':')[0].strip()
+                if not 'lo' in nic_name and 'UP' in nic[0]:
+                    nicData      = {}
+                    nicData_v6 = {}
+                    macData    = {}
+                    nicData.update({'device':self.device_name})
+                    nicData_v6.update({'device':self.device_name})
+                    macData.update({'device':self.device_name})
+                    nicData.update({'tag':nic_name})
+                    nicData_v6.update({'tag':nic_name})
+                    macData.update({'port_name':nic_name})
+                    for rec in nic:
+                        if rec.strip().startswith('ether '):
+                            mac = rec.split()[1].strip()
                             nicData.update({'macaddress':mac})
                             nicData_v6.update({'macaddress':mac})
                             macData.update({'macaddress':mac})
-                        if 'inet addr' in rec:
-                            ipv4 = (rec.split(':')[1]).split()[0]
-                            #print ipv4
+                        if rec.strip().startswith('inet '):
+                            ipv4 = rec.split()[1].strip()
                             nicData.update({'ipaddress':ipv4})
-                            
-                        if 'inet6' in rec:
-                            ipv6 = (rec.split('addr:')[1].split()[0]).split('/')[0]
-                            #print ipv6
+                        if rec.strip().startswith('inet6 '):
+                            ipv6 = rec.split()[1].strip()
+                            if '%' in ipv6:
+                                ipv6 = ipv6.split('%')[0]
                             nicData_v6.update({'ipaddress':ipv6})
-                            
 
                     self.allData.append(nicData)
                     self.allData.append(nicData_v6)
                     self.allData.append(macData)
-                else:
-                    if self.DEBUG:
-                        print data_err 
-                        
+        else:
+            if self.DEBUG:
+                print data_err 
+                
+                            
 
 
 
