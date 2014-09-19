@@ -15,6 +15,7 @@ import util_uploader as uploader
 import util_ip_operations as ipop
 import module_linux as ml
 import module_solaris as ms
+import module_mac as mc
 
 # environment and other stuff
 APP_DIR = ul.module_path()
@@ -69,7 +70,29 @@ def get_solaris_data(ip, usr, pwd):
             elif 'port_name' in rec:
                 rest.post_mac(rec)
         
+def get_mac_data(ip, usr, pwd):
+    if MOD_MAC:
+        lock.acquire()
+        print '[+] Collecting data from: %s' % ip
+        lock.release()
+        mac = mc.GetMacData(BASE_URL, USERNAME, SECRET, ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
+                                    GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
+                                    GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG)
         
+        data = mac.main()
+        if DEBUG:
+            lock.acquire()
+            print 'Mac OS X data: ', data
+            lock.release()
+        # Upload -----------
+        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+        for rec in data:
+            if not 'macaddress' in rec:
+                rest.post_device(rec)
+            elif 'ipaddress'in rec:
+                rest.post_ip(rec)
+            elif 'port_name' in rec:
+                rest.post_mac(rec)
     
 def get_unix_data(ip):
     pass
@@ -114,14 +137,22 @@ def check_os(ip):
                         # not yet implemented
                         #get_unix_data(ip, usr, pwd)
                         break
+                    elif 'darwin' in msg:
+                        lock.acquire()
+                        print '[+] Mac OS X running @ %s' % ip
+                        lock.release()
+                        get_mac_data(ip, usr, pwd)
+                        break
                     else:
                         lock.acquire()
-                        print '[!] Connected to SSH @ %s, but the OS cannot be determined. Skipping... ' % ip
+                        print '[!] Connected to SSH @ %s, but the OS cannot be determined.' % ip
+                        print '\tInfo: %s\n\tSkipping... ' % str(msg)
                         lock.release()
                         break
                 else:
                     lock.acquire()
-                    print '[!] Connected to SSH @ %s, but the OS cannot be determined. Skipping... ' % ip
+                    print '[!] Connected to SSH @ %s, but the OS cannot be determined. ' % ip
+                    print '\tInfo: %s\n\tSkipping... ' % str(msg)
                     lock.release()
             
             except(paramiko.AuthenticationException):
@@ -148,8 +179,9 @@ def get_settings():
         sys.exit()
         
     # modules
-    mod_linux      = cc.get('modules', 'linux')
-    mod_solaris    = cc.get('modules', 'solaris')
+    mod_linux      = cc.getboolean('modules', 'linux')
+    mod_solaris    = cc.getboolean('modules', 'solaris')
+    mod_mac       = cc.getboolean('modules', 'mac')
     # settings ------------------------------------------------------------------------
     base_url      = cc.get('settings', 'base_url')
     username    = cc.get('settings', 'username')
@@ -157,28 +189,27 @@ def get_settings():
     #targets  ------------------------------------------------------------------------
     targets      = cc.get('targets', 'targets')
     # credentials  --------------------------------------------------------------------
-    use_key_file = cc.get('credentials', 'use_key_file')
+    use_key_file = cc.getboolean('credentials', 'use_key_file')
     key_file       = cc.get('credentials', 'key_file')
     credentials   = cc.get('credentials', 'credentials')
     #ssh settings   ------------------------------------------------------------------
     ssh_port      = cc.get('ssh_settings', 'ssh_port')
     timeout       = cc.get('ssh_settings', 'timeout')
     #options   ------------------------------------------------------------------------
-    get_serial_info      = cc.get('options', 'get_serial_info')
-    get_hardware_info = cc.get('options', 'get_hardware_info')
-    get_os_details      = cc.get('options', 'get_os_details')
-    get_cpu_info        = cc.get('options', 'get_cpu_info')
-    get_memory_info   = cc.get('options', 'get_memory_info')
-    ignore_domain       = cc.get('options', 'ignore_domain')
-    upload_ipv6          = cc.get('options', 'upload_ipv6')
-    debug                 = cc.get('options', 'debug')
+    get_serial_info      = cc.getboolean('options', 'get_serial_info')
+    get_hardware_info = cc.getboolean('options', 'get_hardware_info')
+    get_os_details      = cc.getboolean('options', 'get_os_details')
+    get_cpu_info        = cc.getboolean('options', 'get_cpu_info')
+    get_memory_info   = cc.getboolean('options', 'get_memory_info')
+    ignore_domain       = cc.getboolean('options', 'ignore_domain')
+    upload_ipv6          = cc.getboolean('options', 'upload_ipv6')
+    debug                 = cc.getboolean('options', 'debug')
     threads               = cc.get('options', 'threads')
     
-    return   ast.literal_eval(mod_linux), ast.literal_eval(mod_solaris),  base_url, username, secret, targets, \
-                ast.literal_eval(use_key_file), key_file, credentials,  ssh_port, timeout, ast.literal_eval(get_serial_info), \
-                ast.literal_eval(get_hardware_info), ast.literal_eval(get_os_details), ast.literal_eval(get_cpu_info), \
-                ast.literal_eval(get_memory_info), ast.literal_eval(ignore_domain), ast.literal_eval(upload_ipv6), \
-                ast.literal_eval(debug), threads
+    return   mod_linux, mod_solaris,  mod_mac, base_url, username, secret, targets, \
+                use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, \
+                get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
+                ignore_domain, upload_ipv6, debug, threads
 
 
 
@@ -227,8 +258,11 @@ def main():
     
 
 if __name__ == '__main__':
-    MOD_LINUX, MOD_SOLARIS, BASE_URL, USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
-    GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS = get_settings()
+    MOD_LINUX, MOD_SOLARIS, MOD_MAC, BASE_URL, \
+    USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
+    CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
+    GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
+    GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS = get_settings()
     
     main()
 
