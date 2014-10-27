@@ -16,6 +16,7 @@ import util_ip_operations as ipop
 import module_linux as ml
 import module_solaris as ms
 import module_mac as mc
+import module_bsd as bsd
 
 # environment and other stuff
 APP_DIR = ul.module_path()
@@ -93,9 +94,27 @@ def get_mac_data(ip, usr, pwd):
                 rest.post_ip(rec)
             elif 'port_name' in rec:
                 rest.post_mac(rec)
-    
-def get_unix_data(ip):
-    pass
+                
+                
+def get_bsd_data(ip, usr, pwd):
+    if MOD_BSD:
+        solaris = bsd.GetBSDData(ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
+                                GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
+                                GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG)
+        data = solaris.main()
+        if DEBUG:
+            lock.acquire()
+            print 'Solaris data: ', data
+            lock.release()
+        # Upload -----------
+        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+        for rec in data:
+            if not 'macaddress' in rec:
+                rest.post_device(rec)
+            elif 'ipaddress'in rec:
+                rest.post_ip(rec)
+            elif 'port_name' in rec:
+                rest.post_mac(rec)
     
 def check_os(ip):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -130,12 +149,11 @@ def check_os(ip):
                         lock.release()
                         get_solaris_data(ip, usr, pwd)
                         break
-                    elif 'unix' in msg or 'freebsd' in msg or 'openbsd' in msg:
+                    elif 'freebsd' in msg:
                         lock.acquire()
-                        print '[+] Unix running @ %s. Skipping... ' % ip
+                        print '[+] FreeBSD running @ %s ' % ip
                         lock.release()
-                        # not yet implemented
-                        #get_unix_data(ip, usr, pwd)
+                        get_bsd_data(ip, usr, pwd)
                         break
                     elif 'darwin' in msg:
                         lock.acquire()
@@ -181,7 +199,8 @@ def get_settings():
     # modules
     mod_linux      = cc.getboolean('modules', 'linux')
     mod_solaris    = cc.getboolean('modules', 'solaris')
-    mod_mac       = cc.getboolean('modules', 'mac')
+    mod_mac        = cc.getboolean('modules', 'mac')
+    mod_bsd        = cc.getboolean('modules', 'bsd')
     # settings ------------------------------------------------------------------------
     base_url      = cc.get('settings', 'base_url')
     username    = cc.get('settings', 'username')
@@ -206,7 +225,7 @@ def get_settings():
     debug                 = cc.getboolean('options', 'debug')
     threads               = cc.get('options', 'threads')
     
-    return   mod_linux, mod_solaris,  mod_mac, base_url, username, secret, targets, \
+    return   mod_linux, mod_solaris,  mod_mac, mod_bsd, base_url, username, secret, targets, \
                 use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, \
                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
                 ignore_domain, upload_ipv6, debug, threads
@@ -258,7 +277,7 @@ def main():
     
 
 if __name__ == '__main__':
-    MOD_LINUX, MOD_SOLARIS, MOD_MAC, BASE_URL, \
+    MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
     USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
     CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
     GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
