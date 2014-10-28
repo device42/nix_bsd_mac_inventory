@@ -16,7 +16,8 @@ import util_ip_operations as ipop
 import module_linux as ml
 import module_solaris as ms
 import module_mac as mc
-import module_bsd as bsd
+import module_freebsd as freebsd
+import module_openbsd as openbsd
 
 # environment and other stuff
 APP_DIR = ul.module_path()
@@ -96,15 +97,15 @@ def get_mac_data(ip, usr, pwd):
                 rest.post_mac(rec)
                 
                 
-def get_bsd_data(ip, usr, pwd):
+def get_freebsd_data(ip, usr, pwd):
     if MOD_BSD:
-        solaris = bsd.GetBSDData(ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
+        solaris = freebsd.GetBSDData(ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
                                 GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
                                 GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG)
         data = solaris.main()
         if DEBUG:
             lock.acquire()
-            print 'Solaris data: ', data
+            print 'FreeBSD data: ', data
             lock.release()
         # Upload -----------
         rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
@@ -115,6 +116,31 @@ def get_bsd_data(ip, usr, pwd):
                 rest.post_ip(rec)
             elif 'port_name' in rec:
                 rest.post_mac(rec)
+                
+                
+
+def get_openbsd_data(ip, usr, pwd):
+    if MOD_BSD:
+        solaris = openbsd.GetBSDData(ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
+                                GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
+                                GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG)
+        data = solaris.main()
+        if DEBUG:
+            lock.acquire()
+            print 'OpenBSD data: ', data
+            lock.release()
+        # Upload -----------
+        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+        for rec in data:
+            if not 'macaddress' in rec:
+                rest.post_device(rec)
+            elif 'ipaddress'in rec:
+                rest.post_ip(rec)
+            elif 'port_name' in rec:
+                rest.post_mac(rec)                
+                
+
+
     
 def check_os(ip):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -153,7 +179,13 @@ def check_os(ip):
                         lock.acquire()
                         print '[+] FreeBSD running @ %s ' % ip
                         lock.release()
-                        get_bsd_data(ip, usr, pwd)
+                        get_freebsd_data(ip, usr, pwd)
+                        break
+                    elif 'openbsd' in msg:
+                        lock.acquire()
+                        print '[+] OpenBSD running @ %s ' % ip
+                        lock.release()
+                        get_openbsd_data(ip, usr, pwd)
                         break
                     elif 'darwin' in msg:
                         lock.acquire()

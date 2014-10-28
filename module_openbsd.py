@@ -41,7 +41,6 @@ class GetBSDData():
         self.get_RAM()
         self.allData.append(self.sysData)    
         self.get_IP()
-        print self.allData
         return self.allData
 
 
@@ -62,14 +61,16 @@ class GetBSDData():
    
     def get_CPU(self):  
         if self.GET_CPU_INFO:
-            stdin, stdout, stderr = self.ssh.exec_command(" sysctl -n hw.model sysctl hw.ncpu")
+            stdin, stdout, stderr = self.ssh.exec_command("sysctl -n hw.model; sysctl -n hw.ncpu;  sysctl -n hw.cpuspeed")
             data_out = stdout.readlines()
             data_err  = stderr.readlines()
             if not data_err:
                 cpumodel = data_out[0].strip()
                 cpucount = data_out[1].strip()
+                cpuspeed = data_out[2].strip()
                 self.sysData.update({'cpumodel':cpumodel})
                 self.sysData.update({'cpucount':cpucount})
+                self.sysData.update({'cpuspeed':cpuspeed})
                  
             else:
                 print data_err
@@ -78,14 +79,12 @@ class GetBSDData():
 
     def get_RAM(self):
         if self.GET_MEMORY_INFO:
-            stdin, stdout, stderr = self.ssh.exec_command("grep memory /var/run/dmesg.boot")
+            stdin, stdout, stderr = self.ssh.exec_command("sysctl -n hw.physmem")
             data_out = stdout.readlines()
             data_err  = stderr.readlines()
             if not data_err:
-                for rec in data_out:
-                    if 'real' in rec:
-                        memory = rec.split()[-2].strip().strip('(')
-                        self.sysData.update({'memory':memory})
+                memory = int(data_out[0].strip()) /1024 /1024
+                self.sysData.update({'memory':memory})
             else:
                 print 'Error: ', data_err
                 
@@ -93,7 +92,7 @@ class GetBSDData():
     
     
     def get_name(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname -f")
+        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname")
         data_out = stdout.readlines()
         data_err  = stderr.readlines()
         if not data_err:
@@ -105,21 +104,6 @@ class GetBSDData():
                     return full_name
             else:
                 return full_name
-        else:
-            print 'Error: ', data_err
-            
-            
-    def get_MAC(self, ip):
-        # solaris does not return mac address without sudo! Go figure...
-        # this is alternative way to get MACs without sudo
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/arp -a")
-        data_out = stdout.readlines()
-        data_err  = stderr.readlines()
-        if not data_err:
-            for rec in data_out:
-                if ip in rec:
-                    mac = rec.split()[-1]
-                    return mac.strip()
         else:
             print 'Error: ', data_err
             
@@ -161,7 +145,7 @@ class GetBSDData():
                     macs.update({'device':self.device_name})
                     macs.update({'port_name':device})
                 else:
-                    if rec.strip().startswith('ether'):
+                    if rec.strip().startswith('lladdr'):
                         mac = rec.split()[1].strip()
                         tmpv4.update({'macaddress':mac})
                         tmpv6.update({'macaddress':mac})
@@ -171,6 +155,8 @@ class GetBSDData():
                         tmpv4.update({'ipaddress':ipv4})
                     if rec.strip().startswith('inet6'):
                         ipv6 = rec.split()[1]
+                        if '%' in ipv6:
+                            ipv6 = ipv6.split('%')[0]
                         tmpv6.update({'ipaddress':ipv6})
                     
             nics.append(tmpv4)
@@ -213,20 +199,22 @@ class GetBSDData():
         else:
             print 'Error: ', data_err
             
-        stdin, stdout, stderr = self.ssh.exec_command("sysctl -n kern.vm_guest ; sysctl -n kern.hostuuid")
+        stdin, stdout, stderr = self.ssh.exec_command("sysctl -n hw.product; sysctl -n hw.vendor ; sysctl -n hw.uuid")
         data_out = stdout.readlines()
         data_err  = stderr.readlines()
         if not data_err:
-            uuid = data_out[1].strip()
+            vendor = data_out[0].strip()
+            uuid = data_out[2].strip()
             self.sysData.update({'uuid':uuid})
-            virt = data_out[0].strip()
-            if 'generic' in virt:
+            mft = data_out[1].strip()
+            print mft.lower()
+            if mft.lower().strip() in ['vmware, inc.', 'bochs', 'kvm', 'qemu', 'microsoft corporation', 'xen', 'innotek gmbh']:
                 manufacturer = 'virtual'
-            elif 'xen' in virt:
-                manufacturer = 'xen'
-            elif 'none' in virt:
-                manufacturer = 'physical'
-            self.sysData.update({'manufacturer':manufacturer})
+                print manufacturer
+                self.sysData.update({'type':manufacturer})
+            else:
+                self.sysData.update({'type':'physical'})
+            self.sysData.update({'manufacturer':vendor})
    
         else:
             print 'Error: ', data_err
