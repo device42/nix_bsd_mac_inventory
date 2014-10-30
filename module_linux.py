@@ -74,10 +74,9 @@ class GetLinuxData():
         data_err = stderr.readlines()
         data_out = stdout.readlines()
         device_name = None
-        #print 'hostname : %s' % data_out 
         if not data_err:
             if self.IGNORE_DOMAIN: device_name = self.to_ascii(data_out[0].rstrip()).split('.')[0]
-            else: device_name = to_ascii(data_out[0].rstrip())
+            else: device_name = self.to_ascii(data_out[0].rstrip())
             if device_name != '':
                 self.devargs.update({'name': device_name})
                 return device_name
@@ -91,19 +90,44 @@ class GetLinuxData():
     def get_SYS(self):
         device_name = self.get_name()
         if device_name != '':
-            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-uuid")
-            stdin.write('%s\n' % self.password)
-            stdin.flush()
-            data_err = stderr.readlines()
-            data_out = stdout.readlines()
-            #print 'uuid : %s' % data_out 
-            if not data_err:
-                if len(data_out) > 0:
-                    uuid = data_out[0].rstrip()
-                    if uuid and uuid != '': self.devargs.update({'uuid': uuid})
-            else:
-                if self.DEBUG:
-                    print data_err
+            try:
+                #stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-uuid")
+                stdin, stdout, stderr = self.ssh.exec_command("dmidecode -s system-uuid")
+                stdin.write('%s\n' % self.password)
+                stdin.flush()
+                data_err = stderr.readlines()
+                data_out = stdout.readlines()
+                if not data_err:
+                    if len(data_out) > 0:
+                        uuid = data_out[0].rstrip()
+                        if uuid and uuid != '': self.devargs.update({'uuid': uuid})
+                else:
+                    if 'Permission denied' in str(data_err) and not self.password:
+                            print '[!] Permission denied for user "%s". ' % self.username
+                            print "\tPlease check the password (needed for \"sudo\")" 
+                            print '[!] Exiting...'
+                            sys.exit()
+                    elif 'Permission denied' in str(data_err) and self.password:
+                        stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-uuid")
+                        stdin.write('%s\n' % self.password)
+                        stdin.flush()
+                        data_err = stderr.readlines()
+                        data_out = stdout.readlines()
+                        if not data_err:
+                            if len(data_out) > 0:
+                                uuid = data_out[0].rstrip()
+                                if uuid and uuid != '': self.devargs.update({'uuid': uuid})
+                        else:
+                            if self.DEBUG:
+                                print data_err
+                        
+                    else:
+                        print 'erarar'
+                        if self.DEBUG:
+                            print data_err
+            except Exception as e:
+                print 'EXCEPTION: ', e
+                
 
 
             if self.GET_SERIAL_INFO:
@@ -121,7 +145,8 @@ class GetLinuxData():
                     if self.DEBUG:
                         print data_err
 
-            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-manufacturer")
+            #stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-manufacturer")
+            stdin, stdout, stderr = self.ssh.exec_command("dmidecode -s system-manufacturer")
             stdin.write('%s\n' % self.password)
             stdin.flush()
             data_err = stderr.readlines()

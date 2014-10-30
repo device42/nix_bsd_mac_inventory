@@ -45,7 +45,6 @@ class GetBSDData():
 
 
     def connect(self):
-        #self.conn = self.ssh.connect(ip, username=usr, password=pwd, timeout=TIMEOUT)
         try:
             if not self.USE_KEY_FILE: 
                 self.ssh.connect(str(self.machine_name), port=self.port, username=self.username, password=self.password, timeout=self.timeout)
@@ -207,10 +206,8 @@ class GetBSDData():
             uuid = data_out[2].strip()
             self.sysData.update({'uuid':uuid})
             mft = data_out[1].strip()
-            print mft.lower()
             if mft.lower().strip() in ['vmware, inc.', 'bochs', 'kvm', 'qemu', 'microsoft corporation', 'xen', 'innotek gmbh']:
                 manufacturer = 'virtual'
-                print manufacturer
                 self.sysData.update({'type':manufacturer})
             else:
                 self.sysData.update({'type':'physical'})

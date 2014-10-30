@@ -78,7 +78,7 @@ class GetMacData():
         #print 'hostname : %s' % data_out 
         if not data_err:
             if self.IGNORE_DOMAIN: device_name = self.to_ascii(data_out[0].rstrip()).split('.')[0]
-            else: device_name = to_ascii(data_out[0].rstrip())
+            else: device_name = self.to_ascii(data_out[0].rstrip())
             if device_name != '':
                 self.devargs.update({'name': device_name})
                 return device_name
