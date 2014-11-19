@@ -2,6 +2,7 @@
 import sys
 import requests
 import base64 
+requests.packages.urllib3.disable_warnings()
 
 # To upload, or not to upload, question is now?
 DRY_RUN = False

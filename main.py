@@ -20,8 +20,6 @@ import module_freebsd as freebsd
 import module_openbsd as openbsd
 
 # environment and other stuff
-APP_DIR = ul.module_path()
-CONFIGFILE = os.path.join(APP_DIR, 'inventory.cfg')
 lock = threading.Lock()
 q= Queue.Queue()
 SUCCESS = False 
@@ -41,15 +39,18 @@ def get_linux_data(ip, usr, pwd):
             lock.acquire()
             print 'Linux data: ', data
             lock.release()
-        # Upload -----------
-        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-        for rec in data:
-            if not 'macaddress' in rec:
-                rest.post_device(rec)
-            elif 'ipaddress'in rec:
-                rest.post_ip(rec)
-            elif 'port_name' in rec:
-                rest.post_mac(rec)
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+            for rec in data:
+                if not 'macaddress' in rec:
+                    rest.post_device(rec)
+                elif 'ipaddress'in rec:
+                    rest.post_ip(rec)
+                elif 'port_name' in rec:
+                    rest.post_mac(rec)
 
     
 def get_solaris_data(ip, usr, pwd):
@@ -62,15 +63,18 @@ def get_solaris_data(ip, usr, pwd):
             lock.acquire()
             print 'Solaris data: ', data
             lock.release()
-        # Upload -----------
-        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-        for rec in data:
-            if not 'macaddress' in rec:
-                rest.post_device(rec)
-            elif 'ipaddress'in rec:
-                rest.post_ip(rec)
-            elif 'port_name' in rec:
-                rest.post_mac(rec)
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+            for rec in data:
+                if not 'macaddress' in rec:
+                    rest.post_device(rec)
+                elif 'ipaddress'in rec:
+                    rest.post_ip(rec)
+                elif 'port_name' in rec:
+                    rest.post_mac(rec)
 
 
 def get_mac_data(ip, usr, pwd):
@@ -87,15 +91,18 @@ def get_mac_data(ip, usr, pwd):
             lock.acquire()
             print 'Mac OS X data: ', data
             lock.release()
-        # Upload -----------
-        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-        for rec in data:
-            if not 'macaddress' in rec:
-                rest.post_device(rec)
-            elif 'ipaddress'in rec:
-                rest.post_ip(rec)
-            elif 'port_name' in rec:
-                rest.post_mac(rec)
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+            for rec in data:
+                if not 'macaddress' in rec:
+                    rest.post_device(rec)
+                elif 'ipaddress'in rec:
+                    rest.post_ip(rec)
+                elif 'port_name' in rec:
+                    rest.post_mac(rec)
                 
                 
 def get_freebsd_data(ip, usr, pwd):
@@ -108,15 +115,18 @@ def get_freebsd_data(ip, usr, pwd):
             lock.acquire()
             print 'FreeBSD data: ', data
             lock.release()
-        # Upload -----------
-        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-        for rec in data:
-            if not 'macaddress' in rec:
-                rest.post_device(rec)
-            elif 'ipaddress'in rec:
-                rest.post_ip(rec)
-            elif 'port_name' in rec:
-                rest.post_mac(rec)
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+            for rec in data:
+                if not 'macaddress' in rec:
+                    rest.post_device(rec)
+                elif 'ipaddress'in rec:
+                    rest.post_ip(rec)
+                elif 'port_name' in rec:
+                    rest.post_mac(rec)
                 
                 
 
@@ -130,15 +140,18 @@ def get_openbsd_data(ip, usr, pwd):
             lock.acquire()
             print 'OpenBSD data: ', data
             lock.release()
-        # Upload -----------
-        rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-        for rec in data:
-            if not 'macaddress' in rec:
-                rest.post_device(rec)
-            elif 'ipaddress'in rec:
-                rest.post_ip(rec)
-            elif 'port_name' in rec:
-                rest.post_mac(rec)                
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+            for rec in data:
+                if not 'macaddress' in rec:
+                    rest.post_device(rec)
+                elif 'ipaddress'in rec:
+                    rest.post_ip(rec)
+                elif 'port_name' in rec:
+                    rest.post_mac(rec)                
 
 
 def process_data(data_out, ip, usr, pwd):
@@ -147,32 +160,32 @@ def process_data(data_out, ip, usr, pwd):
         lock.acquire()
         print '[+] Linux running @ %s ' % ip
         lock.release()
-        get_linux_data(ip, usr, pwd)
-        return
+        data = get_linux_data(ip, usr, pwd)
+        return data
     elif 'solaris' in msg:
         lock.acquire()
         print '[+] Solaris running @ %s ' % ip
         lock.release()
-        get_solaris_data(ip, usr, pwd)
-        return
+        data = get_solaris_data(ip, usr, pwd)
+        return data
     elif 'freebsd' in msg:
         lock.acquire()
         print '[+] FreeBSD running @ %s ' % ip
         lock.release()
-        get_freebsd_data(ip, usr, pwd)
-        return
+        data = get_freebsd_data(ip, usr, pwd)
+        return data
     elif 'openbsd' in msg:
         lock.acquire()
         print '[+] OpenBSD running @ %s ' % ip
         lock.release()
-        get_openbsd_data(ip, usr, pwd)
-        return
+        data = get_openbsd_data(ip, usr, pwd)
+        return data
     elif 'darwin' in msg:
         lock.acquire()
         print '[+] Mac OS X running @ %s' % ip
         lock.release()
-        get_mac_data(ip, usr, pwd)
-        return
+        data = get_mac_data(ip, usr, pwd)
+        return data
     else:
         lock.acquire()
         print '[!] Connected to SSH @ %s, but the OS cannot be determined.' % ip
@@ -203,7 +216,8 @@ def check_os(ip):
                     data_err  = stderr.readlines()
                     if data_out:
                         SUCCESS = True
-                        process_data(data_out, ip,  usr, pwd)
+                        data = process_data(data_out, ip,  usr, pwd)
+                        return data
                         
                     else:
                         lock.acquire()
@@ -242,7 +256,8 @@ def check_os(ip):
             data_out  = stdout.readlines()
             data_err  = stderr.readlines()
             if data_out:
-                process_data(data_out, ip, usr, pwd)
+                data = process_data(data_out, ip, usr, pwd)
+                return data
                 
             else:
                 lock.acquire()
@@ -266,53 +281,6 @@ def check_os(ip):
                 print '\n[!] Error: Could not login probably due to the wrong username or key file.'
             else:
                 print e
-        
-
-
-
-
-def get_settings():
-    cc = ConfigParser.RawConfigParser()
-    if os.path.isfile(CONFIGFILE):
-        cc.readfp(open(CONFIGFILE,"r"))
-    else:
-        print '\n[!] Cannot find config file. Exiting...'
-        sys.exit()
-        
-    # modules
-    mod_linux      = cc.getboolean('modules', 'linux')
-    mod_solaris    = cc.getboolean('modules', 'solaris')
-    mod_mac        = cc.getboolean('modules', 'mac')
-    mod_bsd        = cc.getboolean('modules', 'bsd')
-    # settings ------------------------------------------------------------------------
-    base_url       = cc.get('settings', 'base_url')
-    username       = cc.get('settings', 'username')
-    secret         = cc.get('settings', 'secret')
-    #targets  ------------------------------------------------------------------------
-    targets        = cc.get('targets', 'targets')
-    # credentials  --------------------------------------------------------------------
-    use_key_file   = cc.getboolean('credentials', 'use_key_file')
-    key_file       = cc.get('credentials', 'key_file')
-    credentials    = cc.get('credentials', 'credentials')
-    #ssh settings   ------------------------------------------------------------------
-    ssh_port       = cc.get('ssh_settings', 'ssh_port')
-    timeout        = cc.get('ssh_settings', 'timeout')
-    #options   ------------------------------------------------------------------------
-    get_serial_info      = cc.getboolean('options', 'get_serial_info')
-    get_hardware_info    = cc.getboolean('options', 'get_hardware_info')
-    get_os_details       = cc.getboolean('options', 'get_os_details')
-    get_cpu_info         = cc.getboolean('options', 'get_cpu_info')
-    get_memory_info      = cc.getboolean('options', 'get_memory_info')
-    ignore_domain        = cc.getboolean('options', 'ignore_domain')
-    upload_ipv6          = cc.getboolean('options', 'upload_ipv6')
-    debug                = cc.getboolean('options', 'debug')
-    threads              = cc.get('options', 'threads')
-    
-    return   mod_linux, mod_solaris,  mod_mac, mod_bsd, base_url, username, secret, targets, \
-                use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, \
-                get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
-                ignore_domain, upload_ipv6, debug, threads
-
 
 
 def main():
@@ -360,52 +328,13 @@ def main():
 
 
 if __name__ == '__main__':
-    MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
-    USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
-    CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
-    GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
-    GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS = get_settings()
-    print TARGETS,  USE_KEY_FILE,  KEY_FILE,  CREDENTIALS
+    from module_shared import *   
     main()
     sys.exit()
-    
 else:
-    if len(sys.argv) == 5:
-        MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
-        USERNAME, SECRET, xTARGETS, xUSE_KEY_FILE, xKEY_FILE, \
-        xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
-        GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
-        GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS = get_settings()
-        SSH_PORT        = int(SSH_PORT)
-        TIMEOUT         = int(TIMEOUT)
-        TARGETS         = sys.argv[1].strip()
-        USE_KEY_FILE    = ast.literal_eval(sys.argv[2].strip().capitalize())
-        KF              = sys.argv[3].strip()
-        if KF.lower() in ('none', 'false', 'true'):
-            KEY_FILE        = ast.literal_eval(KF.capitalize())
-        else: 
-            KEY_FILE    = KF
-            if not os.path.exists(KEY_FILE):
-                print '[!] Cannot find key file: "%s"' % KEY_FILE
-                print '[!] Exiting...'
-                sys.exit()
-        CR              = sys.argv[4].strip()
-        if CR.lower() in ('none', 'false', 'true'):
-            CREDENTIALS = ast.literal_eval(CR)
-        else:
-            CREDENTIALS = CR
-        
-        check_os(TARGETS)
-        sys.exit()
-        
-    else:
-        print '\n[!] Wrong number of args. '
-        print ' '.join(sys.argv[1:])
-        print '[-] main.py TARGET USE_KEY_FILE KEY_FILE CREDENTIALS'
-        sys.exit()
-  
-    
-    
+    # you can use dict_output if called from external script (starter.py)
+    from module_shared import *
+
     
     
     
