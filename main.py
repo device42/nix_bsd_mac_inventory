@@ -208,7 +208,9 @@ def check_os(ip):
                 usr, pwd = cred.split(':')
             if not SUCCESS:
                 try:
+                    lock.acquire()
                     print '[*] Connecting to %s:%s as "%s"' % (ip, SSH_PORT, usr)
+                    lock.release()
                     ssh.connect(ip, username=usr, password=pwd, timeout=TIMEOUT)
                     #ssh.connect(ip, username=usr, key_filename=KEY_FILE, timeout=TIMEOUT)
                     stdin, stdout, stderr = ssh.exec_command("uname -a")
@@ -328,7 +330,7 @@ def main():
 
 
 if __name__ == '__main__':
-    from module_shared import *   
+    from module_shared import *  
     main()
     sys.exit()
 else:

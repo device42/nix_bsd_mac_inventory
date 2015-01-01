@@ -51,33 +51,44 @@ def get_settings():
                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
                 ignore_domain, upload_ipv6, debug, threads,  dict_output
 
-if len(sys.argv) == 5:
+caller = os.path.basename(sys._getframe().f_back.f_code.co_filename)
+if caller == 'main.py':
     MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
-    USERNAME, SECRET, xTARGETS, xUSE_KEY_FILE, xKEY_FILE, \
-    xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
+    USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
+    CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
     GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
     GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT = get_settings()
     SSH_PORT        = int(SSH_PORT)
     TIMEOUT         = int(TIMEOUT)
-    TARGETS         = sys.argv[1].strip()
-    USE_KEY_FILE    = ast.literal_eval(sys.argv[2].strip().capitalize())
-    KF              = sys.argv[3].strip()
-    if KF.lower() in ('none', 'false', 'true'):
-        KEY_FILE        = ast.literal_eval(KF.capitalize())
-    else: 
-        KEY_FILE    = KF
-        if not os.path.exists(KEY_FILE):
-            print '[!] Cannot find key file: "%s"' % KEY_FILE
-            print '[!] Exiting...'
-            sys.exit()
-    CR              = sys.argv[4].strip()
-    if CR.lower() in ('none', 'false', 'true'):
-        CREDENTIALS = ast.literal_eval(CR)
-    else:
-        CREDENTIALS = CR
-    
+
 else:
-    print '\n[!] Wrong number of args. '
-    print ' '.join(sys.argv[1:])
-    print '[-] main.py TARGET USE_KEY_FILE KEY_FILE CREDENTIALS'
-    sys.exit()
+    if len(sys.argv) == 5:
+        MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
+        USERNAME, SECRET, xTARGETS, xUSE_KEY_FILE, xKEY_FILE, \
+        xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
+        GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
+        GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT = get_settings()
+        SSH_PORT        = int(SSH_PORT)
+        TIMEOUT         = int(TIMEOUT)
+        TARGETS         = sys.argv[1].strip()
+        USE_KEY_FILE    = ast.literal_eval(sys.argv[2].strip().capitalize())
+        KF              = sys.argv[3].strip()
+        if KF.lower() in ('none', 'false', 'true'):
+            KEY_FILE        = ast.literal_eval(KF.capitalize())
+        else: 
+            KEY_FILE    = KF
+            if not os.path.exists(KEY_FILE):
+                print '[!] Cannot find key file: "%s"' % KEY_FILE
+                print '[!] Exiting...'
+                sys.exit()
+        CR              = sys.argv[4].strip()
+        if CR.lower() in ('none', 'false', 'true'):
+            CREDENTIALS = ast.literal_eval(CR)
+        else:
+            CREDENTIALS = CR
+        
+    else:
+        print '\n[!] Wrong number of args. '
+        print ' '.join(sys.argv[1:])
+        print '[-] main.py TARGET USE_KEY_FILE KEY_FILE CREDENTIALS'
+        sys.exit()
