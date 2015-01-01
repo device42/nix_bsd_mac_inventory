@@ -219,7 +219,6 @@ class GetLinuxData():
                 stdin, stdout, stderr = self.ssh.exec_command("cat /proc/cpuinfo")
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
-                
                 if not data_err:
                     cpus = []
                     cpu_cores = []
@@ -242,8 +241,9 @@ class GetLinuxData():
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
                 if not data_err:
-                    speed = int((data_out[0].split()[-3].strip()).split('.')[0])
-                    self.devargs.update({'cpupower': speed})
+                    if data_out:
+                        speed = int((data_out[0].split()[-3].strip()).split('.')[0])
+                        self.devargs.update({'cpupower': speed})
                 else:
                     if self.DEBUG:
                         print data_err

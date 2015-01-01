@@ -22,7 +22,7 @@ import module_openbsd as openbsd
 # environment and other stuff
 lock = threading.Lock()
 q= Queue.Queue()
-SUCCESS = False 
+#SUCCESS = False 
 
 
 def get_linux_data(ip, usr, pwd):
@@ -194,9 +194,8 @@ def process_data(data_out, ip, usr, pwd):
         return
     
 def check_os(ip):
-    global SUCCESS
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(float(TIMEOUT))
+    #global SUCCESS
+    SUCCESS = False
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     if not USE_KEY_FILE:
@@ -212,7 +211,6 @@ def check_os(ip):
                     print '[*] Connecting to %s:%s as "%s"' % (ip, SSH_PORT, usr)
                     lock.release()
                     ssh.connect(ip, username=usr, password=pwd, timeout=TIMEOUT)
-                    #ssh.connect(ip, username=usr, key_filename=KEY_FILE, timeout=TIMEOUT)
                     stdin, stdout, stderr = ssh.exec_command("uname -a")
                     data_out  = stdout.readlines()
                     data_err  = stderr.readlines()
@@ -286,6 +284,8 @@ def check_os(ip):
 
 
 def main():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(float(TIMEOUT))
     msg = '\r\n[!] Running %s threads.' % THREADS
     print msg
     # parse IP address [single or CIDR]
@@ -304,29 +304,31 @@ def main():
             else:
                 for ip in ip_scope:
                     q.put(ip)
-            while 1:
-                if not q.empty():
+            while not q.empty():
+                tcount = threading.active_count()
+                if tcount < int(THREADS): 
+                    ip = q.get()
+                    p = threading.Thread(target=check_os, args=(str(ip),) )
+                    p.setDaemon(True)
+                    p.start() 
                     tcount = threading.active_count()
-                    if tcount < int(THREADS):
-                        ip = q.get()
-                        p = threading.Thread(target=check_os, args=(str(ip),) )
-                        p.start()  
-                    else:
-                        time.sleep(0.5)
                 else:
+                    time.sleep(0.5)
                     tcount = threading.active_count()
-                    while tcount > 1:
-                        time.sleep(0.5)
-                        tcount = threading.active_count()
-                        msg =  '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
-                        lock.acquire()
-                        #print msg
-                        lock.release()
-                        
-                    msg =  '\n[!] Done!'
-                    print msg
-                    break
-                    
+            else:
+                tcount = threading.active_count()
+                while tcount > 1:
+                    time.sleep(0.5)
+                    tcount = threading.active_count()
+                    #msg =  '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
+                    #lock.acquire()
+                    #print msg
+                    #lock.release()
+                
+                msg =  '\n[!] Done!'
+                print msg
+                #break
+            
 
 
 if __name__ == '__main__':
