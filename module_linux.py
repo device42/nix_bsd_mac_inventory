@@ -4,7 +4,6 @@ import paramiko
 import math
 import urllib2, urllib
 from base64 import b64encode
-import simplejson as json
 
 class GetLinuxData():
     def __init__(self, BASE_URL, USERNAME, SECRET,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE, \
@@ -156,8 +155,8 @@ class GetLinuxData():
                 if len(data_out) > 0:
                     manufacturer = data_out[0].rstrip()
                     if manufacturer and manufacturer != '':
-                        for mftr in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU', 'Microsoft Corporation', '    Xen']:
-                            if mftr == self.to_ascii(manufacturer).replace("# SMBIOS implementations newer     than version 2.6 are not\n# fully supported by this version of     dmidecode.\n", "").strip():
+                        for mftr in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU', 'Microsoft Corporation', 'Xen', 'innotek GmbH']:
+                            if mftr == self.to_ascii(manufacturer).replace("# SMBIOS implementations newer than version 2.6 are not\n# fully supported by this version of dmidecode.\n", "").strip():
                                 manufacturer = 'virtual'
                                 self.devargs.update({ 'type' : 'virtual', })
                                 break
@@ -214,7 +213,7 @@ class GetLinuxData():
                 else:
                     if self.DEBUG:
                         print data_err
-
+            
             if self.GET_CPU_INFO:
                 stdin, stdout, stderr = self.ssh.exec_command("cat /proc/cpuinfo")
                 data_err = stderr.readlines()
@@ -231,12 +230,17 @@ class GetLinuxData():
                             cpu_cores.append(cid)
                     cpucount = str(len(set(cpus)))
                     corecount = len(set(cpu_cores))
-                    self.devargs.update({'cpucount': cpucount})
-                    self.devargs.update({'cpucore': corecount})
+                    if manufacturer == 'virtual':
+                        self.devargs.update({'cpucount': corecount})
+                        self.devargs.update({'cpucore': 1})
+                    else:
+                        self.devargs.update({'cpucount': cpucount})
+                        self.devargs.update({'cpucore': corecount})
                 else:
                     if self.DEBUG:
                         print data_err
-                        
+
+
                 stdin, stdout, stderr = self.ssh.exec_command("dmesg | grep -i 'mhz processor'")
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
@@ -247,7 +251,6 @@ class GetLinuxData():
                 else:
                     if self.DEBUG:
                         print data_err
-                #print 'CPUs: %s\t Cores: %s\tSpeed: %s' % (str(cpucount), str(corecount), str(speed))
         
         self.allData.append(self.devargs)
 

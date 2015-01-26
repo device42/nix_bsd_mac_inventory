@@ -4,7 +4,7 @@ import paramiko
 import math
 import urllib2, urllib
 from base64 import b64encode
-import simplejson as json
+
 
 class GetMacData():
     def __init__(self, BASE_URL, USERNAME, SECRET,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE, \
