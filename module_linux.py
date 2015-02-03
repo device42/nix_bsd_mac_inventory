@@ -151,6 +151,7 @@ class GetLinuxData():
             data_err = stderr.readlines()
             data_out = stdout.readlines()
             #print 'Manufacturer : %s' % data_out 
+            manufacturer = None
             if not data_err:
                 if len(data_out) > 0:
                     manufacturer = data_out[0].rstrip()
@@ -161,8 +162,7 @@ class GetLinuxData():
                                 self.devargs.update({ 'type' : 'virtual', })
                                 break
                         if manufacturer != 'virtual' and self.GET_HARDWARE_INFO:
-                            self.devargs.update({'manufacturer': self.to_ascii(manufacturer).replace("# SMBIOS     implementations newer than version 2.6 are not\n# fully supported by     this version of dmidecode.\n", "").strip()})
-                            
+                            self.devargs.update({'manufacturer': self.to_ascii(manufacturer).replace("# SMBIOS implementations newer than version 2.6 are not\n# fully supported by this version of dmidecode.\n", "").strip()})
                             stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-product-name")
                             #print 'Product : %s' % data_out 
                             stdin.write('%s\n' % self.password)
@@ -230,7 +230,7 @@ class GetLinuxData():
                             cpu_cores.append(cid)
                     cpucount = str(len(set(cpus)))
                     corecount = len(set(cpu_cores))
-                    if manufacturer == 'virtual':
+                    if manufacturer and manufacturer == 'virtual':
                         self.devargs.update({'cpucount': corecount})
                         self.devargs.update({'cpucore': 1})
                     else:
