@@ -15,7 +15,6 @@ class IP_Operations():
             self.ipscope = self.targets.split(',')
         else:
             self.ipscope = [self.targets]
-        print self.ipscope
         for scope in self.ipscope:
             #cannot mix CIDR and iprange notation
             if '/'in scope  and '-' in scope:
@@ -25,10 +24,8 @@ class IP_Operations():
             
             # CIDR
             if '/' in scope: 
-                print 'CIDR'
                 try:
                     mask = int(scope.split('/')[1])
-                    print 'MASK ', mask
                 except:
                     msg =  '[!] Illegal CIDR mask.'
                     print msg
@@ -49,7 +46,6 @@ class IP_Operations():
             # iprange
             elif '-' in scope:
                 iprange = scope.split('-')
-                print 'IPRANGE: ', iprange
                 if len(iprange) != 2:
                     msg =  '[!] Mailformed target IP.'
                     print msg
