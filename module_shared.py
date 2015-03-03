@@ -21,6 +21,7 @@ def get_settings():
     mod_solaris    = cc.getboolean('modules', 'solaris')
     mod_mac        = cc.getboolean('modules', 'mac')
     mod_bsd        = cc.getboolean('modules', 'bsd')
+    mod_aix        = cc.getboolean('modules', 'aix')
     # settings ------------------------------------------------------------------------
     base_url       = cc.get('settings', 'base_url')
     username       = cc.get('settings', 'username')
@@ -46,14 +47,14 @@ def get_settings():
     threads              = cc.get('options', 'threads')
     dict_output          = cc.getboolean('options', 'dict_output')
     
-    return   mod_linux, mod_solaris,  mod_mac, mod_bsd, base_url, username, secret, targets, \
+    return   mod_linux, mod_solaris,  mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, \
                 use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, \
                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
                 ignore_domain, upload_ipv6, debug, threads,  dict_output
 
 caller = os.path.basename(sys._getframe().f_back.f_code.co_filename)
 if caller == 'main.py':
-    MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
+    MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX, BASE_URL, \
     USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
     CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
     GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
@@ -63,7 +64,7 @@ if caller == 'main.py':
 
 else:
     if len(sys.argv) == 5:
-        MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, BASE_URL, \
+        MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX,  BASE_URL, \
         USERNAME, SECRET, xTARGETS, xUSE_KEY_FILE, xKEY_FILE, \
         xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
         GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \

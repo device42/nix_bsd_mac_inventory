@@ -18,6 +18,7 @@ import module_solaris as ms
 import module_mac as mc
 import module_freebsd as freebsd
 import module_openbsd as openbsd
+import module_aix as aix
 
 # environment and other stuff
 lock = threading.Lock()
@@ -151,7 +152,31 @@ def get_openbsd_data(ip, usr, pwd):
                 elif 'ipaddress'in rec:
                     rest.post_ip(rec)
                 elif 'port_name' in rec:
-                    rest.post_mac(rec)                
+                    rest.post_mac(rec)     
+         
+
+def get_aix_data(ip, usr, pwd):
+    if MOD_AIX:
+        ibm = aix.GetAixData(ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
+                                GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
+                                GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG)
+        data = ibm.main()
+        if DEBUG:
+            lock.acquire()
+            print 'AIX data: ', data
+            lock.release()
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+            for rec in data:
+                if not 'macaddress' in rec:
+                    rest.post_device(rec)
+                elif 'ipaddress'in rec:
+                    rest.post_ip(rec)
+                elif 'port_name' in rec:
+                    rest.post_mac(rec)          
 
 
 def process_data(data_out, ip, usr, pwd):
@@ -185,6 +210,12 @@ def process_data(data_out, ip, usr, pwd):
         print '[+] Mac OS X running @ %s' % ip
         lock.release()
         data = get_mac_data(ip, usr, pwd)
+        return data
+    elif 'aix' in msg:
+        lock.acquire()
+        print '[+] IBM AIX running @ %s' % ip
+        lock.release()
+        data = get_aix_data(ip, usr, pwd)
         return data
     else:
         lock.acquire()
@@ -282,6 +313,9 @@ def check_os(ip):
             else:
                 print e
 
+def test(ip):
+    print ip
+    
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -309,6 +343,7 @@ def main():
                 if tcount < int(THREADS): 
                     ip = q.get()
                     p = threading.Thread(target=check_os, args=(str(ip),) )
+                    #p = threading.Thread(target=test, args=(str(ip),) )
                     p.setDaemon(True)
                     p.start() 
                     tcount = threading.active_count()
@@ -318,12 +353,12 @@ def main():
             else:
                 tcount = threading.active_count()
                 while tcount > 1:
-                    time.sleep(0.5)
+                    time.sleep(2)
                     tcount = threading.active_count()
-                    #msg =  '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
-                    #lock.acquire()
-                    #print msg
-                    #lock.release()
+                    msg =  '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
+                    lock.acquire()
+                    print msg
+                    lock.release()
                 
                 msg =  '\n[!] Done!'
                 print msg
