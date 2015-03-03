@@ -9,6 +9,7 @@ Supported targets:
 * BSD (OpenBSD and FreeBSD)
 * OS X (tested on Mavericks)
 * Oracle Solaris ( >= 11)
+* AIX (tested on v 7.1)
     
 ### Requirements
 -----------------------------
