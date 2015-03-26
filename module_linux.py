@@ -1,9 +1,6 @@
-import sys
-import re
 import paramiko
 import math
-import urllib2, urllib
-from base64 import b64encode
+
 
 class GetLinuxData():
     def __init__(self, BASE_URL, USERNAME, SECRET,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE, \
@@ -90,8 +87,7 @@ class GetLinuxData():
         device_name = self.get_name()
         if device_name != '':
             try:
-                #stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-uuid")
-                stdin, stdout, stderr = self.ssh.exec_command("dmidecode -s system-uuid")
+                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-uuid")
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
                 data_err = stderr.readlines()
@@ -101,36 +97,16 @@ class GetLinuxData():
                         uuid = data_out[0].rstrip()
                         if uuid and uuid != '': self.devargs.update({'uuid': uuid})
                 else:
+
                     if 'Permission denied' in str(data_err) and not self.password:
                             print '[!] Permission denied for user "%s". ' % self.username
-                            print "\tPlease check the password (needed for \"sudo\")" 
-                            print '[!] Exiting...'
-                            sys.exit()
-                    elif 'Permission denied' in str(data_err) and self.password:
-                        stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-uuid")
-                        stdin.write('%s\n' % self.password)
-                        stdin.flush()
-                        data_err = stderr.readlines()
-                        data_out = stdout.readlines()
-                        if not data_err:
-                            if len(data_out) > 0:
-                                uuid = data_out[0].rstrip()
-                                if uuid and uuid != '': self.devargs.update({'uuid': uuid})
-                        else:
-                            if self.DEBUG:
-                                print data_err
-                        
-                    else:
-                        print 'erarar'
-                        if self.DEBUG:
-                            print data_err
+                            print "\tPlease check your password or sudoers file in case of using ssh key file"
             except Exception as e:
                 print 'EXCEPTION: ', e
-                
 
 
             if self.GET_SERIAL_INFO:
-                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-serial-number")
+                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-serial-number")
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
                 data_err = stderr.readlines()
@@ -144,8 +120,7 @@ class GetLinuxData():
                     if self.DEBUG:
                         print data_err
 
-            #stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-manufacturer")
-            stdin, stdout, stderr = self.ssh.exec_command("dmidecode -s system-manufacturer")
+            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-manufacturer")
             stdin.write('%s\n' % self.password)
             stdin.flush()
             data_err = stderr.readlines()

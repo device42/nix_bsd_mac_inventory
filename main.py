@@ -235,7 +235,11 @@ def check_os(ip):
             if cred not in ('', ' ', '\n'):
                 usr = None
                 pwd = None
-                usr, pwd = cred.split(':')
+                try:
+                    usr, pwd = cred.split(':')
+                except ValueError:
+                    print '\n[!] Error. \n\tPlease check credentials formatting. It should look like user:password\n'
+                    sys.exit()
             if not SUCCESS:
                 try:
                     lock.acquire()
@@ -278,7 +282,7 @@ def check_os(ip):
         try:
             if ':' in CREDENTIALS:
                 usr, pwd = CREDENTIALS.split(':')
-            else: 
+            else:
                 usr = CREDENTIALS
                 pwd = None
             print '[*] Connecting to %s:%s as "%s" using key file.' % (ip, SSH_PORT, usr)
@@ -289,29 +293,31 @@ def check_os(ip):
             if data_out:
                 data = process_data(data_out, ip, usr, pwd)
                 return data
-                
+
             else:
                 lock.acquire()
                 print '[!] Connected to SSH @ %s, but the OS cannot be determined. ' % ip
                 print '\tInfo: %s\n\tSkipping... ' % str(msg)
                 lock.release()
-                
-            
+
+
         except(paramiko.AuthenticationException):
             lock.acquire()
             print '[!] Could not authenticate to %s as user "%s"' % (ip, usr)
             lock.release()
-            
+
         except(socket.error):
             lock.acquire()
             print '[!] Timeout %s ' % ip
             lock.release()
-            
+
         except Exception, e:
             if str(e) == 'not a valid EC private key file':
                 print '\n[!] Error: Could not login probably due to the wrong username or key file.'
             else:
                 print e
+
+
 
 def test(ip):
     print ip
@@ -323,7 +329,7 @@ def main():
     msg = '\r\n[!] Running %s threads.' % THREADS
     print msg
     # parse IP address [single or CIDR]
-
+    
     if TARGETS:
         ipops = ipop.IP_Operations(TARGETS)
         ip_scope = ipops.sort_ip()

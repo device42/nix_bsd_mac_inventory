@@ -13,18 +13,29 @@ Supported targets:
     
 ### Requirements
 -----------------------------
-    * python 2.7.x
-    * requests
-	* paramiko 
-	* netaddr
-	* This script works with Device42 5.10.2 and above
+* python 2.7.x
+* requests
+* paramiko 
+* netaddr
+* This script works with Device42 5.10.2 and above
     
 ### Compatibility
 -----------------------------
-    * Script runs on any OS capable of running Python 2.7.x
+* Script runs on any OS capable of running Python 2.7.x
 	
 	
 ### Usage
 -----------------------------
-    * Run from main.py and use settings from inventory.cfg. Run against multiple targets, use multithreading and multiple credentials.
-	* Run from starter.py, use settings from inventory.cfg but specify (overwrite) single target, use_key_file, key_file, username and password from command line (take a look @ starter.py source)
+* Run from main.py and use settings from inventory.cfg. Run against multiple targets, use multithreading and multiple credentials.
+* Run from starter.py, use settings from inventory.cfg but specify (overwrite) single target, use_key_file, key_file, username and password from command line (take a look @ starter.py source)
+
+### Note
+----------------------------
+
+By default, root has permissions to run dmidecode. If you are running auto-discover as non-root user, you would need following in your */etc/sudoers file.*
+
+	%your-group-here ALL = (ALL) NOPASSWD:/usr/sbin/dmidecode
+
+If this permission is missing, auto-discovery client would not be able to find out hardware, manufacturer and serial # etc.
+
+You might also have to comment out Default Requiretty in */etc/sudoers file*.

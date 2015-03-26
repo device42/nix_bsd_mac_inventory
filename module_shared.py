@@ -53,6 +53,7 @@ def get_settings():
                 ignore_domain, upload_ipv6, debug, threads,  dict_output
 
 caller = os.path.basename(sys._getframe().f_back.f_code.co_filename)
+print caller
 if caller == 'main.py':
     MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX, BASE_URL, \
     USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \

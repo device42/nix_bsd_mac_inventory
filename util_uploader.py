@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys
 import requests
-import base64 
-requests.packages.urllib3.disable_warnings()
+import base64
+
+try:
+    requests.packages.urllib3.disable_warnings()
+except AttributeError:
+    pass
 
 # To upload, or not to upload, question is now?
 DRY_RUN = False
