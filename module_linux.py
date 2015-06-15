@@ -7,29 +7,30 @@ class GetLinuxData():
                         GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
                         GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG):
         
-        self.D42_API_URL     = BASE_URL
-        self.D42_USERNAME  = USERNAME
-        self.D42_PASSWORD = SECRET
-        self.machine_name   = ip
-        self.port                 = int(SSH_PORT)
-        self.timeout             = TIMEOUT
-        self.username          = usr
+        self.D42_API_URL        = BASE_URL
+        self.D42_USERNAME       = USERNAME
+        self.D42_PASSWORD       = SECRET
+        self.machine_name       = ip
+        self.port               = int(SSH_PORT)
+        self.timeout            = TIMEOUT
+        self.username           = usr
         self.password           = pwd
-        self.USE_KEY_FILE            = USE_KEY_FILE
-        self.KEY_FILE                   = KEY_FILE
-        self.GET_SERIAL_INFO       = GET_SERIAL_INFO
+        self.USE_KEY_FILE       = USE_KEY_FILE
+        self.KEY_FILE           = KEY_FILE
+        self.GET_SERIAL_INFO    = GET_SERIAL_INFO
         self.GET_HARDWARE_INFO  = GET_HARDWARE_INFO
-        self.GET_OS_DETAILS        = GET_OS_DETAILS
-        self.GET_CPU_INFO           = GET_CPU_INFO
-        self.GET_MEMORY_INFO     = GET_MEMORY_INFO 
-        self.IGNORE_DOMAIN         = IGNORE_DOMAIN       
-        self.UPLOAD_IPV6             = UPLOAD_IPV6
-        self.DEBUG                       = DEBUG
-        
-        self.ssh = paramiko.SSHClient()
+        self.GET_OS_DETAILS     = GET_OS_DETAILS
+        self.GET_CPU_INFO       = GET_CPU_INFO
+        self.GET_MEMORY_INFO    = GET_MEMORY_INFO
+        self.IGNORE_DOMAIN      = IGNORE_DOMAIN
+        self.UPLOAD_IPV6        = UPLOAD_IPV6
+        self.DEBUG              = DEBUG
+
+        self.allData    = []
+        self.devargs    = {}
+        self.ssh        = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.allData  = []
-        self.devargs = {}
+
         
         
         
@@ -42,9 +43,11 @@ class GetLinuxData():
     def connect(self):
         try:
             if not self.USE_KEY_FILE: 
-                self.ssh.connect(str(self.machine_name), port=self.port, username=self.username, password=self.password, timeout=self.timeout)
+                self.ssh.connect(str(self.machine_name), port=self.port,
+                                 username=self.username, password=self.password, timeout=self.timeout)
             else: 
-                self.ssh.connect(str(self.machine_name), port=self.port, username=self.username, key_filename=self.KEY_FILE, timeout=self.timeout)
+                self.ssh.connect(str(self.machine_name), port=self.port,
+                                 username=self.username, key_filename=self.KEY_FILE, timeout=self.timeout)
         except paramiko.AuthenticationException:
             print str(self.machine_name) + ': authentication failed'
             return None
@@ -87,9 +90,13 @@ class GetLinuxData():
         device_name = self.get_name()
         if device_name != '':
             try:
-                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-uuid")
-                stdin.write('%s\n' % self.password)
-                stdin.flush()
+                if self.username != 'root':
+                    stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-uuid")
+                    stdin.write('%s\n' % self.password)
+                    stdin.flush()
+                else:
+                    stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dmidecode -s system-uuid")
+
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
                 if not data_err:
@@ -106,9 +113,12 @@ class GetLinuxData():
 
 
             if self.GET_SERIAL_INFO:
-                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-serial-number")
-                stdin.write('%s\n' % self.password)
-                stdin.flush()
+                if self.username != 'root':
+                    stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-serial-number")
+                    stdin.write('%s\n' % self.password)
+                    stdin.flush()
+                else:
+                    stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dmidecode -s system-serial-number")
                 data_err = stderr.readlines()
                 data_out = stdout.readlines()
                 #print 'serial : %s' % data_out 
@@ -119,10 +129,12 @@ class GetLinuxData():
                 else:
                     if self.DEBUG:
                         print data_err
-
-            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-manufacturer")
-            stdin.write('%s\n' % self.password)
-            stdin.flush()
+            if self.username != 'root':
+                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-manufacturer")
+                stdin.write('%s\n' % self.password)
+                stdin.flush()
+            else:
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dmidecode -s system-manufacturer")
             data_err = stderr.readlines()
             data_out = stdout.readlines()
             #print 'Manufacturer : %s' % data_out 
@@ -138,10 +150,12 @@ class GetLinuxData():
                                 break
                         if manufacturer != 'virtual' and self.GET_HARDWARE_INFO:
                             self.devargs.update({'manufacturer': self.to_ascii(manufacturer).replace("# SMBIOS implementations newer than version 2.6 are not\n# fully supported by this version of dmidecode.\n", "").strip()})
-                            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-product-name")
-                            #print 'Product : %s' % data_out 
-                            stdin.write('%s\n' % self.password)
-                            stdin.flush()
+                            if self.username != 'root':
+                                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-product-name")
+                                stdin.write('%s\n' % self.password)
+                                stdin.flush()
+                            else:
+                                stdin, stdout, stderr = self.ssh.exec_command("dmidecode -s system-product-name")
                             data_err = stderr.readlines()
                             data_out = stdout.readlines()
                             if not data_err:
@@ -231,6 +245,7 @@ class GetLinuxData():
 
 
     def get_IP(self):
+        print 'IP'
         device_name = self.get_name()
         self.device_name = device_name
         if self.os == 'fedora' and float(self.osver) >= 20:

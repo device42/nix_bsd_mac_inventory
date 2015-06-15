@@ -1,16 +1,10 @@
-import sys
-import os
-import ast
-import ConfigParser
 import threading
-import netaddr
 import socket
 import Queue
 import time
 import paramiko
 
 #import custom modules
-import util_locator as ul
 import util_uploader as uploader
 import util_ip_operations as ipop
 import module_linux as ml
@@ -23,7 +17,6 @@ import module_aix as aix
 # environment and other stuff
 lock = threading.Lock()
 q= Queue.Queue()
-#SUCCESS = False 
 
 
 def get_linux_data(ip, usr, pwd):
