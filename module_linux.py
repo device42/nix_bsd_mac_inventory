@@ -1,12 +1,13 @@
-import paramiko
+import ast
 import math
+import paramiko
 
 
 class GetLinuxData():
     def __init__(self, BASE_URL, USERNAME, SECRET,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE, \
                         GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
                         GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG):
-        
+
         self.D42_API_URL        = BASE_URL
         self.D42_USERNAME       = USERNAME
         self.D42_PASSWORD       = SECRET
@@ -25,27 +26,35 @@ class GetLinuxData():
         self.IGNORE_DOMAIN      = IGNORE_DOMAIN
         self.UPLOAD_IPV6        = UPLOAD_IPV6
         self.DEBUG              = DEBUG
+        self.root               = True
+        self.devicename         = None
 
         self.allData    = []
         self.devargs    = {}
         self.ssh        = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        
-        
-        
     def main(self):
         self.connect()
-        self.get_SYS()
+        self.are_u_root()
+        self.get_system()
+        if self.GET_MEMORY_INFO:
+            self.get_ram()
+        if self.GET_CPU_INFO:
+            self.get_cpu()
+        if self.GET_OS_DETAILS:
+            self.get_os()
+        self.get_hdd()
         self.get_IP()
+        self.allData.append(self.devargs)
         return self.allData
-        
+
     def connect(self):
         try:
-            if not self.USE_KEY_FILE: 
+            if not self.USE_KEY_FILE:
                 self.ssh.connect(str(self.machine_name), port=self.port,
                                  username=self.username, password=self.password, timeout=self.timeout)
-            else: 
+            else:
                 self.ssh.connect(str(self.machine_name), port=self.port,
                                  username=self.username, key_filename=self.KEY_FILE, timeout=self.timeout)
         except paramiko.AuthenticationException:
@@ -54,11 +63,38 @@ class GetLinuxData():
         except Exception as err:
             print str(self.machine_name) + ': ' + str(err)
             return  None
-        
+
+
+    def execute(self, cmd):
+        if self.root:
+            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+        else:
+            cmd_sudo = "sudo -S -p '' %s" % cmd
+            stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
+            stdin.write('%s\n' % self.password)
+            stdin.flush()
+        data_err = stderr.readlines()
+        data_out = stdout.readlines()
+        # some OSes do not have sudo by default! We can try some of the commands without it (cat /proc/meminfo....)
+        if data_err and 'sudo: command not found' in str(data_err):
+            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            data_err = stderr.readlines()
+            data_out = stdout.readlines()
+        return data_out,data_err
+
+    def are_u_root(self):
+        cmd = 'id -u'
+        data, err = self.execute(cmd)
+        if data[0].strip() == '0':
+            self.root = True
+        else:
+            self.root = False
 
     def to_ascii(self, s):
-        try: return s.encode('ascii','ignore')
-        except: return None
+        try:
+            return s.encode('ascii','ignore')
+        except:
+            return None
 
     def closest_memory_assumption(self, v):
         if v < 512: v = 128 * math.ceil(v / 128.0)
@@ -67,304 +103,265 @@ class GetLinuxData():
         elif v < 8192: v = 1024 * math.ceil(v / 1024.0)
         else: v = 2048 * math.ceil(v / 2048.0)
         return int(v)
-    
+
     def get_name(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname")
-        data_err = stderr.readlines()
-        data_out = stdout.readlines()
+        cmd = '/bin/hostname'
+        data_out,data_err = self.execute(cmd)
         device_name = None
         if not data_err:
-            if self.IGNORE_DOMAIN: device_name = self.to_ascii(data_out[0].rstrip()).split('.')[0]
-            else: device_name = self.to_ascii(data_out[0].rstrip())
+            if self.IGNORE_DOMAIN:
+                device_name = self.to_ascii(data_out[0].rstrip()).split('.')[0]
+            else:
+                device_name = self.to_ascii(data_out[0].rstrip())
             if device_name != '':
                 self.devargs.update({'name': device_name})
                 return device_name
-        else:
-            if self.DEBUG:
-                print data_err
-        
-        if not device_name:
-            return None
+        return device_name
 
-    def get_SYS(self):
-        device_name = self.get_name()
-        if device_name != '':
-            try:
-                if self.username != 'root':
-                    stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-uuid")
-                    stdin.write('%s\n' % self.password)
-                    stdin.flush()
-                else:
-                    stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dmidecode -s system-uuid")
-
-                data_err = stderr.readlines()
-                data_out = stdout.readlines()
-                if not data_err:
-                    if len(data_out) > 0:
-                        uuid = data_out[0].rstrip()
-                        if uuid and uuid != '': self.devargs.update({'uuid': uuid})
-                else:
-
-                    if 'Permission denied' in str(data_err) and not self.password:
-                            print '[!] Permission denied for user "%s". ' % self.username
-                            print "\tPlease check your password or sudoers file in case of using ssh key file"
-            except Exception as e:
-                print 'EXCEPTION: ', e
-
-
-            if self.GET_SERIAL_INFO:
-                if self.username != 'root':
-                    stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-serial-number")
-                    stdin.write('%s\n' % self.password)
-                    stdin.flush()
-                else:
-                    stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dmidecode -s system-serial-number")
-                data_err = stderr.readlines()
-                data_out = stdout.readlines()
-                #print 'serial : %s' % data_out 
-                if not data_err:
-                    if len(data_out) > 0:
-                        serial_no = data_out[0].rstrip()
-                        if serial_no and serial_no != '': self.devargs.update({'serial_no': serial_no})
-                else:
-                    if self.DEBUG:
-                        print data_err
-            if self.username != 'root':
-                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/dmidecode -s system-manufacturer")
-                stdin.write('%s\n' % self.password)
-                stdin.flush()
-            else:
-                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dmidecode -s system-manufacturer")
-            data_err = stderr.readlines()
-            data_out = stdout.readlines()
-            #print 'Manufacturer : %s' % data_out 
-            manufacturer = None
+    def get_system(self):
+        self.device_name = self.get_name()
+        if self.device_name not in ('', None):
+            cmd = 'dmidecode -t system'
+            data_out,data_err = self.execute(cmd)
             if not data_err:
-                if len(data_out) > 0:
-                    manufacturer = data_out[0].rstrip()
-                    if manufacturer and manufacturer != '':
-                        for mftr in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU', 'Microsoft Corporation', 'Xen', 'innotek GmbH']:
-                            if mftr == self.to_ascii(manufacturer).replace("# SMBIOS implementations newer than version 2.6 are not\n# fully supported by this version of dmidecode.\n", "").strip():
-                                manufacturer = 'virtual'
-                                self.devargs.update({ 'type' : 'virtual', })
-                                break
-                        if manufacturer != 'virtual' and self.GET_HARDWARE_INFO:
-                            self.devargs.update({'manufacturer': self.to_ascii(manufacturer).replace("# SMBIOS implementations newer than version 2.6 are not\n# fully supported by this version of dmidecode.\n", "").strip()})
-                            if self.username != 'root':
-                                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' dmidecode -s system-product-name")
-                                stdin.write('%s\n' % self.password)
-                                stdin.flush()
-                            else:
-                                stdin, stdout, stderr = self.ssh.exec_command("dmidecode -s system-product-name")
-                            data_err = stderr.readlines()
-                            data_out = stdout.readlines()
-                            if not data_err:
-                                hardware = data_out[0].rstrip()
-                                if hardware and hardware != '': self.devargs.update({'hardware': hardware})
-                            else:
-                                if self.DEBUG:
-                                    print data_err
+                dev_type = None
+                for rec in data_out:
+                    if rec.strip() not in ('\n',' ','', None):
+                        rec = rec.strip()
+                        if rec.startswith('Manufacturer:'):
+                            manufacturer = rec.split(':')[1].strip()
+                            self.devargs.update({'manufacturer': manufacturer})
+                            if manufacturer in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU',
+                                                'Microsoft Corporation', 'Xen', 'innotek GmbH']:
+                                dev_type = 'virtual'
+                                self.devargs.update({ 'type' : dev_type})
+                        if rec.startswith('UUID:'):
+                            uuid = rec.split(':')[1].strip()
+                            self.devargs.update({ 'uuid' : uuid})
+                        if rec.startswith('Serial Number:'):
+                            serial = rec.split(':')[1].strip()
+                            self.devargs.update({ 'serial_no' : serial})
+                        if rec.startswith('Product Name:') and dev_type != 'virtual':
+                            hardware = rec.split(':')[1].strip()
+                            self.devargs.update({'hardware': hardware})
             else:
                 if self.DEBUG:
-                    print data_err
+                    print '\t[-] Failed to get sysdata from host: %s using dmidecode. Message was: %s' % \
+                          (self.machine_name, str(data_err))
+                self.get_system_2()
 
 
-            if self.GET_OS_DETAILS:
-                stdin, stdout, stderr = self.ssh.exec_command("/usr/bin/python -m platform")
-                data_err = stderr.readlines()
-                data_out = stdout.readlines()
-                #print 'Platform : %s' % data_out 
-                if not data_err:
-                    if len(data_out) > 0:
-                        release = data_out[0].rstrip()
-                        if release and release != '':
-                            self.os    = release.split('-with-')[1].split('-')[0]
-                            self.osver = release.split('-with-')[1].split('-')[1]
-                            self.devargs.update({
-                                'os': self.os,
-                                'osver': self.osver
-                                })
-                else:
-                    if self.DEBUG:
-                        print data_err
+    def get_system_2(self):
+        cmd = "grep '' /sys/devices/virtual/dmi/id/*"
+        data_out,data_err = self.execute(cmd)
+        if  data_out:
+            dev_type = 'physical'
+            for rec in data_out:
+                if 'sys_vendor:' in rec:
+                    manufacturer = rec.split(':')[1].strip()
+                    self.devargs.update({'manufacturer': manufacturer})
+                    if manufacturer in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU',
+                                        'Microsoft Corporation', 'Xen', 'innotek GmbH']:
+                        dev_type = 'virtual'
+                        self.devargs.update({ 'type' : dev_type})
+                if 'product_uuid:' in rec:
+                    uuid = rec.split(':')[1].strip()
+                    self.devargs.update({ 'uuid' : uuid})
+                if 'product_serial:' in rec:
+                    serial = rec.split(':')[1].strip()
+                    self.devargs.update({ 'serial_no' : serial})
+                if 'product_name:' in rec and dev_type != 'virtual':
+                    hardware = rec.split(':')[1].strip()
+                    self.devargs.update({'hardware': hardware})
+        else:
+            if self.DEBUG:
+                print '\t[-] Failed to get sysdata from host: %s using grep /sys.... Message was: %s' % \
+                          (self.machine_name, str(data_err))
+            self.get_system_3()
+
+    def get_system_3(self):
+        cmd = "lshal -l -u computer"
+        data_out,data_err = self.execute(cmd)
+        if  data_out:
+            dev_type = None
+            for rec in data_out:
+                if 'system.hardware.vendor' in rec:
+                    manufacturer = rec.split('=')[1].split('(')[0].strip()
+                    self.devargs.update({'manufacturer': manufacturer})
+                    if manufacturer in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU',
+                                        'Microsoft Corporation', 'Xen', 'innotek GmbH']:
+                        dev_type = 'virtual'
+                        self.devargs.update({ 'type' : dev_type})
+                if 'system.hardware.uuid' in rec:
+                    uuid = rec.split('=')[1].split('(')[0].strip()
+                    self.devargs.update({ 'uuid' : uuid})
+                if 'system.hardware.serial' in rec:
+                    serial = rec.split('=')[1].split('(')[0].strip()
+                    self.devargs.update({ 'serial_no' : serial})
+                if 'system.hardware.product' in rec and dev_type != 'virtual':
+                    hardware = rec.split('=')[1].split('(')[0].strip()
+                    self.devargs.update({'hardware': hardware})
+        else:
+            if self.DEBUG:
+                print '\t[-] Failed to get sysdata from host: %s using lshal. Message was: %s' % \
+                          (self.machine_name, str(data_err))
 
 
-            if self.GET_MEMORY_INFO:
-                stdin, stdout, stderr = self.ssh.exec_command("grep MemTotal /proc/meminfo")
-                data_err = stderr.readlines()
-                data_out = stdout.readlines()
-                #print 'RAM : %s' % data_out 
-                if not data_err:
-                    memory_raw = data_out[0].replace(' ', '').replace('MemTotal:','').replace('kB','')
-                    if memory_raw and memory_raw != '':
-                        memory = self.closest_memory_assumption(int(memory_raw)/1024)
-                        self.devargs.update({'memory': memory})
-                else:
-                    if self.DEBUG:
-                        print data_err
-            
-            if self.GET_CPU_INFO:
-                stdin, stdout, stderr = self.ssh.exec_command("cat /proc/cpuinfo")
-                data_err = stderr.readlines()
-                data_out = stdout.readlines()
-                if not data_err:
-                    cpus = []
-                    cpu_cores = []
-                    for rec in data_out:
-                        if 'physical id'in rec:
-                            phyid = rec.split(':')[1].strip()
-                            cpus.append(phyid)
-                        if 'core id' in rec:
-                            cid = rec.split(':')[1].strip()
-                            cpu_cores.append(cid)
-                    cpucount = str(len(set(cpus)))
-                    corecount = len(set(cpu_cores))
-                    if manufacturer and manufacturer == 'virtual':
-                        self.devargs.update({'cpucount': corecount})
-                        self.devargs.update({'cpucore': 1})
-                    else:
-                        self.devargs.update({'cpucount': cpucount})
-                        self.devargs.update({'cpucore': corecount})
-                else:
-                    if self.DEBUG:
-                        print data_err
+    def get_ram(self):
+        cmd = 'grep MemTotal /proc/meminfo'
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            memory_raw = ''.join(data_out).split()[1]
+            memory = self.closest_memory_assumption(int(memory_raw)/1024)
+            self.devargs.update({'memory': memory})
+        else:
+            if self.DEBUG:
+                print '\t[-] Could not get RAM info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
+    def get_os(self):
+        cmd = 'python -c "import platform;print platform.dist()"'
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            self.os,ver,release = ast.literal_eval(data_out[0])
+            self.devargs.update({'os': self.os})
+            self.devargs.update({'osver': ver})
+        else:
+            if self.DEBUG:
+                print '\t[-] Could not get OS info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
-                stdin, stdout, stderr = self.ssh.exec_command("dmesg | grep -i 'mhz processor'")
-                data_err = stderr.readlines()
-                data_out = stdout.readlines()
-                if not data_err:
-                    if data_out:
-                        speed = int((data_out[0].split()[-3].strip()).split('.')[0])
-                        self.devargs.update({'cpupower': speed})
-                else:
-                    if self.DEBUG:
-                        print data_err
-        
-        self.allData.append(self.devargs)
+    def get_cpu(self):
+        cmd = 'cat /proc/cpuinfo'
+        data_out,data_err = self.execute(cmd)
+        if not data_err:
+            cpus = 0
+            cores = 1
+            siblings = None
+            cpuspeed = 0
+            for rec in data_out:
+                if rec.startswith('processor'):
+                    cpus += 1
+                if rec.startswith('cpu MHz'):
+                    cpuspeed = int((float(rec.split(':')[1].strip())))
+                if rec.startswith('cpu cores'):
+                    cores = int(rec.split(':')[1].strip())
+                if rec.startswith('siblings'):
+                    threads = int(rec.split(':')[1].strip())
+            if siblings:
+                processors = cpus / threads
+            else:
+                processors = cpus
+            self.devargs.update({'cpucount': processors})
+            self.devargs.update({'cpucore': cores})
+            self.devargs.update({'cpupower': cpuspeed})
 
+        else:
+            if self.DEBUG:
+                print '\t[-] Could not get CPU info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
     def get_IP(self):
-        print 'IP'
-        device_name = self.get_name()
-        self.device_name = device_name
-        if self.os == 'fedora' and float(self.osver) >= 20:
-            self.get_fedora_ip()
-        else:
-            stdin, stdout, stderr = self.ssh.exec_command("ifconfig")
-            data_out = stdout.readlines()
-            data_err  = stderr.readlines()
-            nics = []
-            if not data_err:
-                for rec in data_out:
-                    nic = rec.split('   ')[0]
-                    if nic not in ('', ' ', '\n', 'lo'):
-                        #print nic
-                        nics.append(nic)
-            else:
-                if self.DEBUG:
-                    print data_err
-                    
-            if nics:
-                for nic in nics:
-                    #print 'NIC: %s' %nic
-                    nicData      = {}
-                    nicData_v6 = {}
-                    macData    = {}
-                    cmd = 'ifconfig %s' % nic
-                    stdin, stdout, stderr = self.ssh.exec_command(cmd)
-                    data_out = stdout.readlines()
-                    data_err  = stderr.readlines()
-                    if not data_err:
-                        nicData.update({'device':device_name})
-                        nicData_v6.update({'device':device_name})
-                        macData.update({'device':device_name})
-                        nicData.update({'tag':nic})
-                        nicData_v6.update({'tag':nic})
-                        macData.update({'port_name':nic})
-                        for rec in data_out:
-                            if 'HWaddr'in rec:
-                                mac = rec.split('HWaddr')[1].strip()
-                                #print mac
-                                nicData.update({'macaddress':mac})
-                                nicData_v6.update({'macaddress':mac})
-                                macData.update({'macaddress':mac})
-                            if 'inet addr' in rec:
-                                ipv4 = (rec.split(':')[1]).split()[0]
-                                #print ipv4
-                                nicData.update({'ipaddress':ipv4})
-                                
-                            if 'inet6' in rec:
-                                ipv6 = (rec.split('addr:')[1].split()[0]).split('/')[0]
-                                #print ipv6
-                                nicData_v6.update({'ipaddress':ipv6})
-                                
-
-                        self.allData.append(nicData)
-                        self.allData.append(nicData_v6)
-                        self.allData.append(macData)
-                    else:
-                        if self.DEBUG:
-                            print data_err 
-
-    def get_fedora_ip(self):
-        """
-        This function is for fedora > 20 ifconfig output.
-        """
-        addresses = {}
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig")
-        data_out = stdout.readlines()
-        data_err  = stderr.readlines()
+        cmd = 'ifconfig'
+        data_out,data_err = self.execute(cmd)
         if not data_err:
-            nics = []
-            tmp = []
-            for rec in data_out:
-                if not rec.startswith('    ') and rec !='\n':
-                    if not tmp == []:
-                        nics.append(tmp)
-                  
-                        tmp =[]
-                    tmp.append(rec)
-                else:
-                    tmp.append(rec)
-                    
-            nics.append(tmp)
-            
-            for nic in nics:
-                nic_name = nic[0].split(':')[0].strip()
-                if not 'lo' in nic_name and 'UP' in nic[0]:
-                    nicData      = {}
-                    nicData_v6 = {}
-                    macData    = {}
-                    nicData.update({'device':self.device_name})
-                    nicData_v6.update({'device':self.device_name})
-                    macData.update({'device':self.device_name})
-                    nicData.update({'tag':nic_name})
-                    nicData_v6.update({'tag':nic_name})
-                    macData.update({'port_name':nic_name})
-                    for rec in nic:
-                        if rec.strip().startswith('ether '):
-                            mac = rec.split()[1].strip()
-                            nicData.update({'macaddress':mac})
-                            nicData_v6.update({'macaddress':mac})
-                            macData.update({'macaddress':mac})
-                        if rec.strip().startswith('inet '):
-                            ipv4 = rec.split()[1].strip()
-                            nicData.update({'ipaddress':ipv4})
-                        if rec.strip().startswith('inet6 '):
-                            ipv6 = rec.split()[1].strip()
-                            if '%' in ipv6:
-                                ipv6 = ipv6.split('%')[0]
-                            nicData_v6.update({'ipaddress':ipv6})
+            NEW = True
+            nic = mac = ip = ip6 = ''
+            for row in data_out:
+                if row not in ('','\n',None):
+                    if not row.startswith('  '):
+                        if NEW:
+                            nic =  row.split()[0].strip(':').strip()
+                            NEW = False
+                        else:
+                            if not nic.startswith('lo') and ip != '':
+                                self.ip_to_json(nic,mac,ip,ip6)
+                            nic = mac = ip = ip6 = ''
+                            nic =  row.split()[0].strip(':')
+                            NEW = True
+                        if 'HWaddr ' in row:
+                            words = row.split()
+                            macindex = words.index('HWaddr') + 1
+                            mac =  words[macindex].strip()
+                    else:
+                        NEW = False
+                        if 'inet addr:' in row:
+                            words = row.split()
+                            ipindex = words.index('inet') + 1
+                            ip =  words[ipindex].strip('addr:').strip()
+                        elif 'inet ' in row and 'addr:' not in row:
+                            words = row.split()
+                            ipindex = words.index('inet') + 1
+                            ip =  words[ipindex].strip()
+                        if 'inet6 addr:' in row:
+                            ip6 = row.split()[2]
+                            if '%' in ip6:
+                                ip6 = ip6.split('%')[0]
+                            if '/' in ip6:
+                                ip6 = ip6.split('/')[0]
+                        elif 'inet6 ' in row and 'addr:' not in row:
+                            ip6 = row.split()[1]
+                            if '%' in ip6:
+                                ip6 = ip6.split('%')[0]
+                            if '/' in ip6:
+                                ip6 = ip6.split('/')[0]
+                        if 'ether ' in row:
+                            words = row.split()
+                            macindex = words.index('ether') + 1
+                            mac =  words[macindex].strip()
 
-                    self.allData.append(nicData)
-                    self.allData.append(nicData_v6)
-                    self.allData.append(macData)
+            if not nic.startswith('lo') and ip != '':
+                self.ip_to_json(nic,mac,ip,ip6)
+
         else:
             if self.DEBUG:
-                print data_err 
-                
-                            
+                print '\t[-] Could not get IP info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
+    def ip_to_json(self, nic,mac,ip,ip6):
+        macData     = {}
+        nicData     = {}
+        nicData_v6  = {}
+        nicData.update({'device': self.device_name})
+        nicData_v6.update({'device': self.device_name})
+        macData.update({'device': self.device_name})
+        nicData.update({'tag':nic})
+        nicData_v6.update({'tag':nic})
+        macData.update({'port_name':nic})
+        nicData.update({'macaddress':mac})
+        nicData_v6.update({'macaddress':mac})
+        macData.update({'macaddress':mac})
+        nicData.update({'ipaddress':ip})
+        nicData_v6.update({'ipaddress':ip6})
+        if ip != '':
+            self.allData.append(nicData)
+        if ip6 != '':
+            self.allData.append(nicData_v6)
+        if mac != '':
+            self.allData.append(macData)
 
+    def get_hdd(self):
+        cmd = 'fdisk -l | grep "Disk /dev"'
+        data_out,data_err = self.execute(cmd)
+        errhdds = []
+        if data_err:
+            for rec in data_err:
+                if "doesn't contain a valid partition table" in rec:
+                    disk = rec.split()[1]
+                    errhdds.append(disk)
+        hddsize = 0
+        hddnum = 0
+        for rec in data_out:
+            try:
+                mess = rec.strip().split()
+                disk = mess[1]
+                size = float(mess[2])
+                sizeformat = mess[3]
+                if '/dev/hd' in disk or 'dev/sd' in disk:
+                    if disk.strip(':') not in errhdds:
+                        if sizeformat == 'MB,':
+                            size = size /1024
+                        hddsize += int(size)
+                        hddnum += 1
+            except Exception, e:
+                pass
+
+        self.devargs.update({'hddcount' : hddnum})
+        self.devargs.update({'hddsize' : int(hddsize)})
 
