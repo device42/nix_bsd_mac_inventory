@@ -20,7 +20,7 @@ secret     =  adm!nd42
 # range: 192.168.1.101-192.168.1.150
 # cidr block: 192.168.1.0/24
 # any combination of above: 192.168.3.0/24,192.168.4.1-192.168.4.10,192.168.55.22,10.0.0.0/24
-targets   = asas
+targets   = 
 
 [credentials]
 # If using key file instead of username and password, enter 'True' for use_key_file setting and
