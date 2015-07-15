@@ -29,13 +29,13 @@ def upload(data):
             devindex = data.index(rec)
     rec = data[devindex]
     if DUPLICATE_SERIALS:
-        rest.post_multinodes(rec)
+        result = rest.post_multinodes(rec)
     else:
         result = rest.post_device(rec)
-        try:
-            name = result['msg'][2]
-        except:
-            pass
+    try:
+        name = result['msg'][2]
+    except:
+        pass
 
     # upload IPs and MACs
     for rec in data:
