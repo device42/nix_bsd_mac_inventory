@@ -43,6 +43,7 @@ timeout       = 10
 
 [options]
 get_serial_info    = True
+duplicate_serials  = False
 get_hardware_info  = True
 get_os_details     = True
 get_cpu_info       = True

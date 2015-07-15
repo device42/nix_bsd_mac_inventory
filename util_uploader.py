@@ -36,11 +36,22 @@ class Rest():
             msg = str(r.text)
             if self.debug:
                 print msg
+            return r.json()
+
+
         
     def post_device(self, data):
         if DRY_RUN == False:
             url = self.base_url+'/api/device/'
             msg =  '\r\nPosting data to %s ' % url
+            print msg
+            result = self.uploader(data, url)
+            return result
+
+    def post_multinodes(self, data):
+        if DRY_RUN == False:
+            url = self.base_url+'/api/1.0/multinodes/'
+            msg =  '\r\nPosting multidata to %s ' % url
             print msg
             self.uploader(data, url)
 

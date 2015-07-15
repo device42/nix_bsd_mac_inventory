@@ -19,6 +19,37 @@ lock = threading.Lock()
 q= Queue.Queue()
 
 
+def upload(data):
+    name = None
+    rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+
+    # Upload device first and get name back
+    for rec in data:
+        if not 'macaddress' in rec:
+            devindex = data.index(rec)
+    rec = data[devindex]
+    if DUPLICATE_SERIALS:
+        rest.post_multinodes(rec)
+    else:
+        result = rest.post_device(rec)
+        try:
+            name = result['msg'][2]
+        except:
+            pass
+
+    # upload IPs and MACs
+    for rec in data:
+        if not 'macaddress' in rec:
+            pass
+        elif 'ipaddress'in rec:
+            if name and 'device' in rec:
+                rec['device'] = name
+            rest.post_ip(rec)
+        elif 'port_name' in rec:
+            if name and 'device' in rec:
+                rec['device'] = name
+            rest.post_mac(rec)
+
 def get_linux_data(ip, usr, pwd):
     if MOD_LINUX:
         lock.acquire()
@@ -37,14 +68,7 @@ def get_linux_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-            for rec in data:
-                if not 'macaddress' in rec:
-                    rest.post_device(rec)
-                elif 'ipaddress'in rec:
-                    rest.post_ip(rec)
-                elif 'port_name' in rec:
-                    rest.post_mac(rec)
+            upload(data)
 
     
 def get_solaris_data(ip, usr, pwd):
@@ -61,14 +85,7 @@ def get_solaris_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-            for rec in data:
-                if not 'macaddress' in rec:
-                    rest.post_device(rec)
-                elif 'ipaddress'in rec:
-                    rest.post_ip(rec)
-                elif 'port_name' in rec:
-                    rest.post_mac(rec)
+            upload(data)
 
 
 def get_mac_data(ip, usr, pwd):
@@ -89,14 +106,7 @@ def get_mac_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-            for rec in data:
-                if not 'macaddress' in rec:
-                    rest.post_device(rec)
-                elif 'ipaddress'in rec:
-                    rest.post_ip(rec)
-                elif 'port_name' in rec:
-                    rest.post_mac(rec)
+            upload(data)
                 
                 
 def get_freebsd_data(ip, usr, pwd):
@@ -113,14 +123,7 @@ def get_freebsd_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-            for rec in data:
-                if not 'macaddress' in rec:
-                    rest.post_device(rec)
-                elif 'ipaddress'in rec:
-                    rest.post_ip(rec)
-                elif 'port_name' in rec:
-                    rest.post_mac(rec)
+            upload(data)
                 
                 
 
@@ -138,14 +141,7 @@ def get_openbsd_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-            for rec in data:
-                if not 'macaddress' in rec:
-                    rest.post_device(rec)
-                elif 'ipaddress'in rec:
-                    rest.post_ip(rec)
-                elif 'port_name' in rec:
-                    rest.post_mac(rec)     
+            upload(data)
          
 
 def get_aix_data(ip, usr, pwd):
@@ -162,14 +158,7 @@ def get_aix_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-            for rec in data:
-                if not 'macaddress' in rec:
-                    rest.post_device(rec)
-                elif 'ipaddress'in rec:
-                    rest.post_ip(rec)
-                elif 'port_name' in rec:
-                    rest.post_mac(rec)          
+            upload(data)
 
 
 def process_data(data_out, ip, usr, pwd):

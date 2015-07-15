@@ -37,6 +37,7 @@ def get_settings():
     timeout        = cc.get('ssh_settings', 'timeout')
     #options   ------------------------------------------------------------------------
     get_serial_info      = cc.getboolean('options', 'get_serial_info')
+    duplicate_serials    = cc.getboolean('options', 'duplicate_serials')
     get_hardware_info    = cc.getboolean('options', 'get_hardware_info')
     get_os_details       = cc.getboolean('options', 'get_os_details')
     get_cpu_info         = cc.getboolean('options', 'get_cpu_info')
@@ -48,7 +49,7 @@ def get_settings():
     dict_output          = cc.getboolean('options', 'dict_output')
     
     return   mod_linux, mod_solaris,  mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, \
-                use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, \
+                use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, duplicate_serials,\
                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
                 ignore_domain, upload_ipv6, debug, threads,  dict_output
 
@@ -57,7 +58,7 @@ print caller
 if caller == 'main.py':
     MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX, BASE_URL, \
     USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
-    CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
+    CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, DUPLICATE_SERIALS,\
     GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
     GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT = get_settings()
     SSH_PORT        = int(SSH_PORT)
@@ -67,7 +68,7 @@ else:
     if len(sys.argv) == 5:
         MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX,  BASE_URL, \
         USERNAME, SECRET, xTARGETS, xUSE_KEY_FILE, xKEY_FILE, \
-        xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, \
+        xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, DUPLICATE_SERIALS, \
         GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
         GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT = get_settings()
         SSH_PORT        = int(SSH_PORT)
