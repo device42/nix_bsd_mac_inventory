@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+
+__version__ = "2.5"
+
 import threading
 import socket
 import Queue
@@ -55,9 +59,9 @@ def get_linux_data(ip, usr, pwd):
         lock.acquire()
         print '[+] Collecting data from: %s' % ip
         lock.release()
-        linux = ml.GetLinuxData(BASE_URL, USERNAME, SECRET, ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE, \
-                                    GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
-                                    GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG)
+        linux = ml.GetLinuxData(BASE_URL, USERNAME, SECRET, ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE,
+                                    GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS,GET_CPU_INFO, GET_MEMORY_INFO,
+                                    IGNORE_DOMAIN, UPLOAD_IPV6, GIVE_HOSTNAME_PRECEDENCE, DEBUG)
         
         data = linux.main()
         if DEBUG:

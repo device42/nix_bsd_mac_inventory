@@ -36,22 +36,23 @@ def get_settings():
     ssh_port       = cc.get('ssh_settings', 'ssh_port')
     timeout        = cc.get('ssh_settings', 'timeout')
     #options   ------------------------------------------------------------------------
-    get_serial_info      = cc.getboolean('options', 'get_serial_info')
-    duplicate_serials    = cc.getboolean('options', 'duplicate_serials')
-    get_hardware_info    = cc.getboolean('options', 'get_hardware_info')
-    get_os_details       = cc.getboolean('options', 'get_os_details')
-    get_cpu_info         = cc.getboolean('options', 'get_cpu_info')
-    get_memory_info      = cc.getboolean('options', 'get_memory_info')
-    ignore_domain        = cc.getboolean('options', 'ignore_domain')
-    upload_ipv6          = cc.getboolean('options', 'upload_ipv6')
-    debug                = cc.getboolean('options', 'debug')
-    threads              = cc.get('options', 'threads')
-    dict_output          = cc.getboolean('options', 'dict_output')
+    get_serial_info             = cc.getboolean('options', 'get_serial_info')
+    get_hardware_info           = cc.getboolean('options', 'get_hardware_info')
+    get_os_details              = cc.getboolean('options', 'get_os_details')
+    get_cpu_info                = cc.getboolean('options', 'get_cpu_info')
+    get_memory_info             = cc.getboolean('options', 'get_memory_info')
+    ignore_domain               = cc.getboolean('options', 'ignore_domain')
+    upload_ipv6                 = cc.getboolean('options', 'upload_ipv6')
+    duplicate_serials           = cc.getboolean('options', 'duplicate_serials')
+    give_hostname_precedence    = cc.getboolean('options', 'give_hostname_precedence')
+    debug                       = cc.getboolean('options', 'debug')
+    threads                     = cc.get('options', 'threads')
+    dict_output                 = cc.getboolean('options', 'dict_output')
     
     return   mod_linux, mod_solaris,  mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, \
                 use_key_file, key_file, credentials,  ssh_port, timeout, get_serial_info, duplicate_serials,\
                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info, \
-                ignore_domain, upload_ipv6, debug, threads,  dict_output
+                ignore_domain, upload_ipv6, debug, threads,  dict_output, give_hostname_precedence
 
 caller = os.path.basename(sys._getframe().f_back.f_code.co_filename)
 print caller
@@ -59,8 +60,8 @@ if caller == 'main.py':
     MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX, BASE_URL, \
     USERNAME, SECRET, TARGETS, USE_KEY_FILE, KEY_FILE, \
     CREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, DUPLICATE_SERIALS,\
-    GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
-    GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT = get_settings()
+    GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, \
+    UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT, GIVE_HOSTNAME_PRECEDENCE = get_settings()
     SSH_PORT        = int(SSH_PORT)
     TIMEOUT         = int(TIMEOUT)
 
@@ -69,8 +70,8 @@ else:
         MOD_LINUX, MOD_SOLARIS, MOD_MAC, MOD_BSD, MOD_AIX,  BASE_URL, \
         USERNAME, SECRET, xTARGETS, xUSE_KEY_FILE, xKEY_FILE, \
         xCREDENTIALS, SSH_PORT, TIMEOUT, GET_SERIAL_INFO, DUPLICATE_SERIALS, \
-        GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, \
-        GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT = get_settings()
+        GET_HARDWARE_INFO, GET_OS_DETAILS, GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, \
+        UPLOAD_IPV6, DEBUG, THREADS, DICT_OUTPUT, GIVE_HOSTNAME_PRECEDENCE = get_settings()
         SSH_PORT        = int(SSH_PORT)
         TIMEOUT         = int(TIMEOUT)
         TARGETS         = sys.argv[1].strip()

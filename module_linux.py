@@ -4,9 +4,9 @@ import paramiko
 
 
 class GetLinuxData():
-    def __init__(self, BASE_URL, USERNAME, SECRET,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE, \
-                        GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
-                        GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG):
+    def __init__(self, BASE_URL, USERNAME, SECRET,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE,
+                        GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS,GET_CPU_INFO, GET_MEMORY_INFO,
+                        IGNORE_DOMAIN, UPLOAD_IPV6, GIVE_HOSTNAME_PRECEDENCE,DEBUG):
 
         self.D42_API_URL        = BASE_URL
         self.D42_USERNAME       = USERNAME
@@ -25,6 +25,7 @@ class GetLinuxData():
         self.GET_MEMORY_INFO    = GET_MEMORY_INFO
         self.IGNORE_DOMAIN      = IGNORE_DOMAIN
         self.UPLOAD_IPV6        = UPLOAD_IPV6
+        self.NAME_PRECEDENCE    = GIVE_HOSTNAME_PRECEDENCE
         self.DEBUG              = DEBUG
         self.root               = True
         self.devicename         = None
@@ -115,7 +116,11 @@ class GetLinuxData():
                 device_name = self.to_ascii(data_out[0].rstrip())
             if device_name != '':
                 self.devargs.update({'name': device_name})
+                if self.NAME_PRECEDENCE:
+                    self.devargs.update({'new_name':device_name})
                 return device_name
+
+
         return device_name
 
     def get_system(self):

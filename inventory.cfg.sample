@@ -42,15 +42,16 @@ ssh_port      = 22
 timeout       = 10
 
 [options]
-get_serial_info    = True
-duplicate_serials  = False
-get_hardware_info  = True
-get_os_details     = True
-get_cpu_info       = True
-get_memory_info    = True
-ignore_domain      = False
-upload_ipv6        = True
-debug              = True
-threads            = 50
-dict_output        = False
+get_serial_info    			= True
+get_hardware_info  			= True
+get_os_details     			= True
+get_cpu_info       			= True
+get_memory_info    			= True
+ignore_domain      			= False
+upload_ipv6        			= True
+duplicate_serials  			= False
+give_hostname_precedence	= False
+debug              			= True
+threads            			= 50
+dict_output        			= False
 
