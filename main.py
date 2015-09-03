@@ -173,7 +173,7 @@ def process_data(data_out, ip, usr, pwd):
         lock.release()
         data = get_linux_data(ip, usr, pwd)
         return data
-    elif 'solaris' in msg:
+    elif 'solaris' in msg or 'sunos' in msg:
         lock.acquire()
         print '[+] Solaris running @ %s ' % ip
         lock.release()
