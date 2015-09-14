@@ -176,6 +176,10 @@ class GetSolarisData():
                 if 'KernelID ' in rec:
                     if self.GET_OS_DETAILS:
                         version = rec.split('=')[1].strip()
+                        self.sysData.update({'osverno':version})
+                if 'Release ' in rec:
+                    if self.GET_OS_DETAILS:
+                        version = rec.split('=')[1].strip()
                         self.sysData.update({'osver':version})
                 if 'Node ' in rec:
                     name = rec.split('=')[1].strip()

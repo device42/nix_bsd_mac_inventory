@@ -180,7 +180,7 @@ class GetBSDData():
         
     def get_sys(self):
         self.device_name = self.get_name()
-        stdin, stdout, stderr = self.ssh.exec_command("uname -mrs")
+        stdin, stdout, stderr = self.ssh.exec_command("uname -srK")
         data_out = stdout.readlines()
         data_err  = stderr.readlines()
         if not data_err:
@@ -189,6 +189,8 @@ class GetBSDData():
             self.sysData.update({'os':os})
             version = data[1].strip()
             self.sysData.update({'osver':version})
+            kernel_version = data[2].strip()
+            self.sysData.update({'osverno':kernel_version})
             self.sysData.update({'name':self.device_name})
             
         else:

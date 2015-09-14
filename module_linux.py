@@ -224,12 +224,14 @@ class GetLinuxData():
                 print '\t[-] Could not get RAM info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
     def get_os(self):
-        cmd = 'python -c "import platform;print platform.dist()"'
+        cmd = 'python -c "import platform; raw = list(platform.dist());raw.append(platform.release());print raw"'
         data_out, data_err = self.execute(cmd)
         if not data_err:
-            self.os,ver,release = ast.literal_eval(data_out[0])
+            #self.os,ver,release  = ast.literal_eval(data_out[0])
+            self.os,ver,release,kernel_version  = ast.literal_eval(data_out[0])
             self.devargs.update({'os': self.os})
             self.devargs.update({'osver': ver})
+            self.devargs.update({'osverno': kernel_version})
         else:
             if self.DEBUG:
                 print '\t[-] Could not get OS info from host %s. Message was: %s' % (self.machine_name, str(data_err))

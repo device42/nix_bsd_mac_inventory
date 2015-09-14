@@ -114,7 +114,21 @@ class GetMacData():
                 else:
                     if self.DEBUG:
                         print data_err
-            
+
+            # GET KERNEL VERSION
+            if self.GET_OS_DETAILS:
+                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/bin/uname -r")
+                stdin.write('%s\n' % self.password)
+                stdin.flush()
+                data_err = stderr.readlines()
+                data_out = stdout.readlines()
+                if not data_err:
+                    if len(data_out) > 0:
+                        osverno = data_out[0].strip()
+                        self.devargs.update({'osverno':osverno})
+                else:
+                    if self.DEBUG:
+                        print data_err
             
             # GET HW DATA
             stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/system_profiler SPHardwareDataType")
@@ -157,8 +171,8 @@ class GetMacData():
                 print data_err
     
         self.allData.append(self.devargs)
-        
-        
+
+
             
     def get_IP(self):
         addresses = {}
