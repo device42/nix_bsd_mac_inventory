@@ -1,6 +1,4 @@
-import sys
 import paramiko
-import util_uploader
 
 
 
@@ -102,24 +100,36 @@ class GetSolarisData():
             print 'Error: ', data_err
             
             
-    def get_MAC(self, ip,name):
-        # solaris does not return mac address without sudo! Go figure...
-        # this is alternative way to get MACs without sudo
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/arp -a")
+    def get_macs(self):
+        macs = {}
+        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dladm show-phys -m")
         data_out = stdout.readlines()
         data_err  = stderr.readlines()
         if not data_err:
-            for rec in data_out:
-                if ip in rec or name in rec:
-                    mac = rec.split()[-1]
-                    return mac.strip()
+            for rec in data_out[1:]:
+                nic, slot, address, in_use, client = rec.split()
+                # dladm returns MACs in wrong format
+                if address:
+                    raw = address.split(':')
+                    address = ':'.join([x if len(x)==2 else ('0'+x) for x in raw])
+                macs.update({nic:address})
+            return macs
         else:
-            print 'Error: ', data_err
-            
+            stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/arp -a")
+            data_out = stdout.readlines()
+            data_err  = stderr.readlines()
+            if not data_err:
+                for rec in data_out[1:]:
+                        nic = rec.split()[0]
+                        mac = rec.split()[-1]
+                        macs.update({nic:mac})
+                return macs
+            else:
+                print 'Error: ', data_err
 
-    
+
     def get_IP(self):
-        addresses = {}
+        macs = self.get_macs()
         stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig -a")
         data_out = stdout.readlines()
         data_err  = stderr.readlines()
@@ -132,15 +142,14 @@ class GetSolarisData():
                     try:
                         a, i = raw
                     except:
-                        #print 'RAW: [%s]' % str(raw)
                         pass
                     else:
                         nic = a.split()[0].strip(':')
                         ip = i.split()[1]
                         if ip not in ('', ' ') and nic not in ('lo0'):
+                            mac = macs[nic]
                             nicData = {}
                             macData = {}
-                            mac  = self.get_MAC(ip,name)
                             if not mac:
                                 mac = ''
 
@@ -158,10 +167,10 @@ class GetSolarisData():
                                 macData.update({'port_name':nic})
                                 macData.update({'device':name})
                                 self.allData.append(macData)
-
                 n += 2
         else:
             print 'Error: ', data_err
+
         
     def get_sys(self):
         stdin, stdout, stderr = self.ssh.exec_command("uname -X")

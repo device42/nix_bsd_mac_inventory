@@ -278,7 +278,7 @@ class GetLinuxData():
                             nic =  row.split()[0].strip(':').strip()
                             NEW = False
                         else:
-                            if not nic.startswith('lo') and ip != '':
+                            if not nic.startswith('lo'):
                                 self.ip_to_json(nic,mac,ip,ip6)
                             nic = mac = ip = ip6 = ''
                             nic =  row.split()[0].strip(':')
@@ -314,7 +314,7 @@ class GetLinuxData():
                             macindex = words.index('ether') + 1
                             mac =  words[macindex].strip()
 
-            if not nic.startswith('lo') and ip != '':
+            if not nic.startswith('lo'):
                 self.ip_to_json(nic,mac,ip,ip6)
 
         else:
@@ -336,8 +336,8 @@ class GetLinuxData():
         macData.update({'macaddress':mac})
         nicData.update({'ipaddress':ip})
         nicData_v6.update({'ipaddress':ip6})
-        if ip != '':
-            self.allData.append(nicData)
+        #if ip != '':
+        self.allData.append(nicData)
         if ip6 != '':
             self.allData.append(nicData_v6)
         if mac != '':

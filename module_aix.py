@@ -8,28 +8,27 @@ class GetAixData():
     def __init__(self,  ip, SSH_PORT, TIMEOUT, usr, pwd, USE_KEY_FILE, KEY_FILE, \
                     GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS, \
                     GET_CPU_INFO, GET_MEMORY_INFO, IGNORE_DOMAIN, UPLOAD_IPV6, DEBUG):
-        self.machine_name   = ip
-        self.port                 = int(SSH_PORT)
-        self.timeout             = TIMEOUT
-        self.username          = usr
+        self.machine_name       = ip
+        self.port               = int(SSH_PORT)
+        self.timeout            = TIMEOUT
+        self.username           = usr
         self.password           = pwd
-        self.ssh                   = paramiko.SSHClient()
-        self.USE_KEY_FILE            = USE_KEY_FILE
-        self.KEY_FILE                   = KEY_FILE
-        self.GET_SERIAL_INFO       = GET_SERIAL_INFO
+        self.ssh                = paramiko.SSHClient()
+        self.USE_KEY_FILE       = USE_KEY_FILE
+        self.KEY_FILE           = KEY_FILE
+        self.GET_SERIAL_INFO    = GET_SERIAL_INFO
         self.GET_HARDWARE_INFO  = GET_HARDWARE_INFO
-        self.GET_OS_DETAILS        = GET_OS_DETAILS
-        self.GET_CPU_INFO           = GET_CPU_INFO
-        self.GET_MEMORY_INFO     = GET_MEMORY_INFO 
-        self.IGNORE_DOMAIN         = IGNORE_DOMAIN       
-        self.UPLOAD_IPV6             = UPLOAD_IPV6
-        self.DEBUG                       = DEBUG
-        self.ssh = paramiko.SSHClient()
+        self.GET_OS_DETAILS     = GET_OS_DETAILS
+        self.GET_CPU_INFO       = GET_CPU_INFO
+        self.GET_MEMORY_INFO    = GET_MEMORY_INFO
+        self.IGNORE_DOMAIN      = IGNORE_DOMAIN
+        self.UPLOAD_IPV6        = UPLOAD_IPV6
+        self.DEBUG              = DEBUG
+        self.ssh                = paramiko.SSHClient()
+        self.conn               = None
+        self.sysData            = {}
+        self.allData            = []
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.conn      = None
-        self.sysData  = {}
-        self.allData   = []
-
 
     def main(self):
         self.connect()
@@ -58,7 +57,8 @@ class GetAixData():
 
     def get_sys(self):
         if self.GET_CPU_INFO:
-            cmd = 'lsconf | egrep -i "system model|machine serial|processor type|number of processors|processor clock speed|cpu type|kernel type|^memory size|disk drive|host name"; oslevel'
+            cmd = 'lsconf | egrep -i "system model|machine serial|processor type|number of processors|' \
+                  'processor clock speed|cpu type|kernel type|^memory size|disk drive|host name"; oslevel'
             stdin, stdout, stderr = self.ssh.exec_command(cmd)
             data_out = stdout.readlines()
             data_err  = stderr.readlines()
