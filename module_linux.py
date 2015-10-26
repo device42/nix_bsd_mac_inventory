@@ -129,7 +129,7 @@ class GetLinuxData():
     def get_system(self):
         self.device_name = self.get_name()
         if self.device_name not in ('', None):
-            cmd = '$(which dmidecode) -t system'
+            cmd = '/usr/sbin/dmidecode -t system'
             data_out,data_err = self.execute(cmd, True)
             if not data_err:
                 dev_type = None
@@ -269,7 +269,7 @@ class GetLinuxData():
                 print '\t[-] Could not get CPU info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
     def get_IP(self):
-        cmd = 'ifconfig'
+        cmd = '/sbin/ifconfig'
         data_out,data_err = self.execute(cmd)
         if not data_err:
             NEW = True
