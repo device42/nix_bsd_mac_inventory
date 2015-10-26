@@ -347,7 +347,7 @@ class GetLinuxData():
             self.allData.append(macData)
 
     def get_hdd(self):
-        cmd = 'fdisk -l | grep "Disk /dev"'
+        cmd = '/sbin/fdisk -l | grep "Disk /dev"'
         data_out,data_err = self.execute(cmd)
         errhdds = []
         if data_err:
