@@ -66,14 +66,17 @@ class GetLinuxData():
             return  None
 
 
-    def execute(self, cmd):
-        if self.root:
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+    def execute(self, cmd, needroot = False):
+        if needroot:
+            if self.root:
+                stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            else:
+                cmd_sudo = "sudo -S -p '' %s" % cmd
+                stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
+                stdin.write('%s\n' % self.password)
+                stdin.flush()
         else:
-            cmd_sudo = "sudo -S -p '' %s" % cmd
-            stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
-            stdin.write('%s\n' % self.password)
-            stdin.flush()
+            stdin, stdout, stderr = self.ssh.exec_command(cmd)
         data_err = stderr.readlines()
         data_out = stdout.readlines()
         # some OSes do not have sudo by default! We can try some of the commands without it (cat /proc/meminfo....)
@@ -127,7 +130,7 @@ class GetLinuxData():
         self.device_name = self.get_name()
         if self.device_name not in ('', None):
             cmd = '$(which dmidecode) -t system'
-            data_out,data_err = self.execute(cmd)
+            data_out,data_err = self.execute(cmd, True)
             if not data_err:
                 dev_type = None
                 for rec in data_out:
