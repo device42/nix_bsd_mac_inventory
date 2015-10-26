@@ -126,7 +126,7 @@ class GetLinuxData():
     def get_system(self):
         self.device_name = self.get_name()
         if self.device_name not in ('', None):
-            cmd = 'dmidecode -t system'
+            cmd = '$(which dmidecode) -t system'
             data_out,data_err = self.execute(cmd)
             if not data_err:
                 dev_type = None
