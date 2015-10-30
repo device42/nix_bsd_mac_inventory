@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "2.6"
+__version__ = "2.7"
 
 import threading
 import socket
