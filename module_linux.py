@@ -161,7 +161,7 @@ class GetLinuxData():
 
     def get_system_2(self):
         cmd = "grep '' /sys/devices/virtual/dmi/id/*"
-        data_out,data_err = self.execute(cmd)
+        data_out,data_err = self.execute(cmd, True)
         if  data_out:
             dev_type = 'physical'
             for rec in data_out:
@@ -348,7 +348,7 @@ class GetLinuxData():
 
     def get_hdd(self):
         cmd = '/sbin/fdisk -l | grep "Disk /dev"'
-        data_out,data_err = self.execute(cmd)
+        data_out,data_err = self.execute(cmd, True)
         errhdds = []
         if data_err:
             for rec in data_err:
