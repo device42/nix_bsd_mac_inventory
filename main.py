@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "2.7"
+__version__ = "3.0"
 
 import threading
 import socket
@@ -26,6 +26,13 @@ q= Queue.Queue()
 def upload(data):
     name = None
     rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+
+    # get hdd parts if any
+    hdd_parts = {}
+    for rec in data:
+        if 'hdd_parts' in rec:
+            hdd_parts.update(rec['hdd_parts'])
+            data.remove(rec)
 
     # Upload device first and get name back
     for rec in data:
@@ -54,19 +61,27 @@ def upload(data):
                 rec['device'] = name
             rest.post_mac(rec)
 
+    # upload hdd_parts if any
+    if hdd_parts:
+        rest.post_parts(hdd_parts)
+
+
 def get_linux_data(ip, usr, pwd):
     if MOD_LINUX:
         lock.acquire()
         print '[+] Collecting data from: %s' % ip
         lock.release()
         linux = ml.GetLinuxData(BASE_URL, USERNAME, SECRET, ip, SSH_PORT, TIMEOUT,  usr, pwd, USE_KEY_FILE, KEY_FILE,
-                                    GET_SERIAL_INFO, GET_HARDWARE_INFO, GET_OS_DETAILS,GET_CPU_INFO, GET_MEMORY_INFO,
+                                    GET_SERIAL_INFO, ADD_HDD_AS_DEVICE_PROPERTIES, ADD_HDD_AS_PARTS,
+                                    GET_HARDWARE_INFO, GET_OS_DETAILS,GET_CPU_INFO, GET_MEMORY_INFO,
                                     IGNORE_DOMAIN, UPLOAD_IPV6, GIVE_HOSTNAME_PRECEDENCE, DEBUG)
         
         data = linux.main()
         if DEBUG:
             lock.acquire()
-            print 'Linux data: ', data
+            print '\nLinux data: '
+            for rec in data:
+                print rec
             lock.release()
         if DICT_OUTPUT:
             return data
@@ -83,7 +98,7 @@ def get_solaris_data(ip, usr, pwd):
         data = solaris.main()
         if DEBUG:
             lock.acquire()
-            print 'Solaris data: ', data
+            print '\nSolaris data: ', data
             lock.release()
         if DICT_OUTPUT:
             return data
@@ -128,8 +143,7 @@ def get_freebsd_data(ip, usr, pwd):
         else:
             # Upload -----------
             upload(data)
-                
-                
+
 
 def get_openbsd_data(ip, usr, pwd):
     if MOD_BSD:
@@ -239,14 +253,11 @@ def check_os(ip):
                         SUCCESS = True
                         data = process_data(data_out, ip,  usr, pwd)
                         return data
-                        
                     else:
                         lock.acquire()
                         print '[!] Connected to SSH @ %s, but the OS cannot be determined. ' % ip
-                        print '\tInfo: %s\n\tSkipping... ' % str(msg)
                         lock.release()
-                        
-                    
+
                 except(paramiko.AuthenticationException):
                     lock.acquire()
                     print '[!] Could not authenticate to %s as user "%s"' % (ip, usr)
@@ -283,9 +294,7 @@ def check_os(ip):
             else:
                 lock.acquire()
                 print '[!] Connected to SSH @ %s, but the OS cannot be determined. ' % ip
-                print '\tInfo: %s\n\tSkipping... ' % str(msg)
                 lock.release()
-
 
         except(paramiko.AuthenticationException):
             lock.acquire()
@@ -304,18 +313,12 @@ def check_os(ip):
                 print e
 
 
-
-def test(ip):
-    print ip
-    
-
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(float(TIMEOUT))
     msg = '\r\n[!] Running %s threads.' % THREADS
     print msg
     # parse IP address [single or CIDR]
-    
     if TARGETS:
         ipops = ipop.IP_Operations(TARGETS)
         ip_scope = ipops.sort_ip()
@@ -335,7 +338,6 @@ def main():
                 if tcount < int(THREADS): 
                     ip = q.get()
                     p = threading.Thread(target=check_os, args=(str(ip),) )
-                    #p = threading.Thread(target=test, args=(str(ip),) )
                     p.setDaemon(True)
                     p.start() 
                     tcount = threading.active_count()
@@ -354,7 +356,6 @@ def main():
                 
                 msg =  '\n[!] Done!'
                 print msg
-                #break
             
 
 

@@ -19,7 +19,6 @@ class Rest():
         self.password = SECRET
         self.debug     = DEBUG
 
-
     def uploader(self, data, url):
             payload = data
             headers = {
@@ -37,8 +36,6 @@ class Rest():
             if self.debug:
                 print msg
             return r.json()
-
-
         
     def post_device(self, data):
         if DRY_RUN == False:
@@ -69,5 +66,11 @@ class Rest():
             print msg
             self.uploader(data, url)
 
+    def post_parts(self, data):
+        if DRY_RUN == False:
+            url = self.base_url+'/api/1.0/parts/'
+            msg = '\r\nPosting HDD parts to %s ' % url
+            print msg
+            self.uploader(data, url)
 
 
