@@ -245,7 +245,7 @@ def check_os(ip):
                     lock.acquire()
                     print '[*] Connecting to %s:%s as "%s"' % (ip, SSH_PORT, usr)
                     lock.release()
-                    ssh.connect(ip, username=usr, password=pwd, timeout=TIMEOUT)
+                    ssh.connect(ip, username=usr, password=pwd, timeout=TIMEOUT, allow_agent=False, look_for_keys=False)
                     stdin, stdout, stderr = ssh.exec_command("uname -a")
                     data_out  = stdout.readlines()
                     data_err  = stderr.readlines()
