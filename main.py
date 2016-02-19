@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "3.0"
+__version__ = "3.1"
 
 import threading
 import socket
@@ -24,6 +24,7 @@ q= Queue.Queue()
 
 
 def upload(data):
+    ips  = []
     name = None
     rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
 
@@ -53,6 +54,9 @@ def upload(data):
         if not 'macaddress' in rec:
             pass
         elif 'ipaddress'in rec:
+            ip = rec['ipaddress']
+            if ip:
+                ips.append(ip)
             if name and 'device' in rec:
                 rec['device'] = name
             rest.post_ip(rec)
@@ -64,6 +68,21 @@ def upload(data):
     # upload hdd_parts if any
     if hdd_parts:
         rest.post_parts(hdd_parts)
+    # remove unused IPs
+    if REMOVE_STALE_IPS:
+       remove_stale_ips(rec, ips)
+
+
+def remove_stale_ips(rec, ips):
+    ips_to_remove = []
+    rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
+    if 'name' in rec:
+        name = rec['name']
+        fetched_ips = rest.get_device_by_name(name)
+        ips_to_remove = set(fetched_ips) - set(ips)
+        if ips_to_remove:
+            for ip in ips_to_remove:
+                rest.delete_ip(ip)
 
 
 def get_linux_data(ip, usr, pwd):

@@ -37,6 +37,7 @@ class GetLinuxData():
         self.raids              = {}
         self.hdd_parts          = {}
 
+        self.nics       = []
         self.allData    = []
         self.devargs    = {}
         self.ssh        = paramiko.SSHClient()
@@ -53,7 +54,7 @@ class GetLinuxData():
         if self.GET_OS_DETAILS:
             self.get_os()
         self.get_hdd()
-        self.get_IP()
+        self.get_ip_ipaddr()
         self.allData.append(self.devargs)
         if self.ADD_HDD_AS_PARTS:
             self.allData.append({'hdd_parts':self.hdd_parts})
@@ -288,7 +289,9 @@ class GetLinuxData():
             if self.DEBUG:
                 print '\t[-] Could not get CPU info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
-    def get_IP(self):
+
+
+    def get_ip_ifconfig(self):
         cmd = '/sbin/ifconfig'
         data_out,data_err = self.execute(cmd)
         if not data_err:
@@ -365,6 +368,71 @@ class GetLinuxData():
             self.allData.append(nicData_v6)
         if mac != '':
             self.allData.append(macData)
+
+
+    def get_ip_ipaddr(self):
+        cmd = 'ip addr show'
+        data_out,data_err = self.execute(cmd)
+        if not data_err:
+            for rec in data_out:
+                if not rec.startswith('  ') and rec not in ('','\n'):
+                    raw = rec.split(':')
+                    try:
+                        nic = raw[1].strip()
+                        if nic != 'lo':
+                            self.nics.append(nic)
+                    except:
+                        pass
+            self.process_nics()
+        else:
+            if self.DEBUG:
+                print '\t[-] Could not get NIC info from host %s. Message was: %s' % (self.machine_name, str(data_err))
+            self.get_ip_ifconfig()
+
+
+    def process_nics(self):
+        if self.nics:
+            for nic in self.nics:
+                macData     = {}
+                nicData     = {}
+                nicData_v6  = {}
+                mac         = None
+                ip          = None
+                ip6         = None
+                cmd = 'ip addr show %s ' % nic
+                data_out,data_err = self.execute(cmd)
+                if not data_err:
+                    ip = None
+                    for rec in data_out:
+                        if rec.strip().startswith('inet '):
+                            ip,subnet = rec.split()[1].split('/')
+                        if rec.strip().startswith('inet6 '):
+                            ip6,subnet6 = rec.split()[1].split('/')
+                        if rec.strip().startswith('link/'):
+                            mac = rec.split()[1]
+
+                nicData.update({'device': self.device_name})
+                nicData_v6.update({'device': self.device_name})
+                macData.update({'device': self.device_name})
+                nicData.update({'tag':nic})
+                nicData_v6.update({'tag':nic})
+                macData.update({'port_name':nic})
+                nicData.update({'macaddress':mac})
+                nicData_v6.update({'macaddress':mac})
+                macData.update({'macaddress':mac})
+                nicData.update({'ipaddress':ip})
+                nicData_v6.update({'ipaddress':ip6})
+                if ip:
+                    self.allData.append(nicData)
+                if ip6:
+                    self.allData.append(nicData_v6)
+                if mac:
+                    self.allData.append(macData)
+                else:
+                    if self.DEBUG:
+                        print '\t[-] Could not get IP info from host %s. Message was: %s' % \
+                              (self.machine_name, str(data_err))
+
 
     def get_hdd(self):
         # get software raids. Hardware raids are way too complicated to fetch automatically.
