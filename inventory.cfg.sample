@@ -15,7 +15,7 @@ username   =  admin
 secret     =  adm!nd42
 
 [targets]
-# Targets can be specified as:
+# targets can be specified as:
 # single: 192.168.1.125
 # range: 192.168.1.101-192.168.1.150
 # cidr block: 192.168.1.0/24
