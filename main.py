@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "3.1"
+__version__ = "3.2"
 
 import threading
 import socket
@@ -36,18 +36,27 @@ def upload(data):
             data.remove(rec)
 
     # Upload device first and get name back
+    devindex = None
     for rec in data:
         if not 'macaddress' in rec:
             devindex = data.index(rec)
-    rec = data[devindex]
-    if DUPLICATE_SERIALS:
-        result = rest.post_multinodes(rec)
-    else:
-        result = rest.post_device(rec)
-    try:
-        name = result['msg'][2]
-    except:
-        pass
+    if devindex:
+        rec = data[devindex]
+        if DUPLICATE_SERIALS:
+            result, scode = rest.post_multinodes(rec)
+            if scode != 200:
+                print '\n[!] Error! Could not upload devices: %s\n' % str(rec)
+                return
+        else:
+            result, scode = rest.post_device(rec)
+            if scode != 200:
+                print '\n[!] Error! Could not upload device: %s\n' % str(rec)
+                return
+        try:
+            name = result['msg'][2]
+        except:
+            print '\n[!] Error! Could not get device name from response: %s\n' % str(result)
+            return
 
     # upload IPs and MACs
     for rec in data:
@@ -65,24 +74,23 @@ def upload(data):
                 rec['device'] = name
             rest.post_mac(rec)
 
+        # remove unused IPs
+        if REMOVE_STALE_IPS and name:
+           remove_stale_ips(rec, ips, name)
+
     # upload hdd_parts if any
     if hdd_parts:
         rest.post_parts(hdd_parts)
-    # remove unused IPs
-    if REMOVE_STALE_IPS:
-       remove_stale_ips(rec, ips)
 
 
-def remove_stale_ips(rec, ips):
+def remove_stale_ips(rec, ips, name):
     ips_to_remove = []
     rest = uploader.Rest(BASE_URL, USERNAME, SECRET, DEBUG)
-    if 'name' in rec:
-        name = rec['name']
-        fetched_ips = rest.get_device_by_name(name)
-        ips_to_remove = set(fetched_ips) - set(ips)
-        if ips_to_remove:
-            for ip in ips_to_remove:
-                rest.delete_ip(ip)
+    fetched_ips = rest.get_device_by_name(name)
+    ips_to_remove = set(fetched_ips) - set(ips)
+    if ips_to_remove:
+        for ip in ips_to_remove:
+            rest.delete_ip(ip)
 
 
 def get_linux_data(ip, usr, pwd):

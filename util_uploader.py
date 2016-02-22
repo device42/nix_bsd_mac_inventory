@@ -29,17 +29,17 @@ class Rest():
             msg =  unicode(payload)
             if self.debug:
                 print msg
-            msg = 'Status code: %s' % str(r.status_code)
+            scode = r.status_code
+            msg = 'Status code: %s' % str(scode)
             print msg
             msg = str(r.text)
             if self.debug:
                 print msg
-            return r.json()
+            return r.json(), scode
 
     def fetcher(self, url):
         r   = requests.get(url, headers=self.headers, verify=False)
         status_code = r.status_code
-
         if status_code == 200:
             if self.debug:
                 msg = '%d\t%s' % (status_code, str(r.text))
@@ -63,43 +63,50 @@ class Rest():
         if DRY_RUN == False:
             url = self.base_url+'/api/device/'
             msg =  '\r\nPosting data to %s ' % url
-            print msg
-            result = self.uploader(data, url)
-            return result
+            if self.debug:
+                print msg
+            result, scode = self.uploader(data, url)
+            return result, scode
 
     def post_multinodes(self, data):
         if DRY_RUN == False:
             url = self.base_url+'/api/1.0/multinodes/'
             msg =  '\r\nPosting multidata to %s ' % url
-            print msg
-            self.uploader(data, url)
+            if self.debug:
+                print msg
+            result, scode = self.uploader(data, url)
+            return result, scode
 
     def post_ip(self, data):
         if DRY_RUN == False:
             url = self.base_url+'/api/ip/'
             msg =  '\r\nPosting IP data to %s ' % url
-            print msg
+            if self.debug:
+                print msg
             self.uploader(data, url)
 
     def post_mac(self, data):
         if DRY_RUN == False:
             url = self.base_url+'/api/1.0/macs/'
             msg = '\r\nPosting MAC data to %s ' % url
-            print msg
+            if self.debug:
+                print msg
             self.uploader(data, url)
 
     def post_parts(self, data):
         if DRY_RUN == False:
             url = self.base_url+'/api/1.0/parts/'
             msg = '\r\nPosting HDD parts to %s ' % url
-            print msg
+            if self.debug:
+                print msg
             self.uploader(data, url)
 
     def get_device_by_name(self, name):
         if DRY_RUN == False:
             url = self.base_url + '/api/1.0/devices/name/%s/?include_cols=ip_addresses' % name
             msg = '\r\nFetching IP addresses for device:  %s ' % name
-            print msg
+            if self.debug:
+                print msg
             response = self.fetcher(url)
             if isinstance(response, dict) and 'ip_addresses' in response:
                 fetched_ips = [x['ip'] for x in response['ip_addresses'] if 'ip' in x]
@@ -107,17 +114,12 @@ class Rest():
 
     def delete_ip(self, ip):
         if DRY_RUN == False:
+            msg = '\r\nDeleting IP addresses:  %s ' % ip
+            if self.debug:
+                print msg
             url =self.base_url+ '/api/1.0/ips/?ip=%s' % ip
             response = self.fetcher(url)
             ip_ids = [x['id'] for x in response['ips']]
             for ip_id in ip_ids:
                 url = self.base_url + '/api/1.0/ips/%s' % ip_id
                 response = self.deleter(url)
-
-
-
-
-
-
-
-
