@@ -28,6 +28,7 @@ def get_settings():
     secret = cc.get('settings', 'secret')
     # targets  ------------------------------------------------------------------------
     targets = cc.get('targets', 'targets')
+    exclude_ips = cc.get('targets', 'exclude_ips')
     # credentials  --------------------------------------------------------------------
     use_key_file = cc.getboolean('credentials', 'use_key_file')
     key_file = cc.get('credentials', 'key_file')
@@ -52,7 +53,7 @@ def get_settings():
     threads = cc.get('options', 'threads')
     dict_output = cc.getboolean('options', 'dict_output')
 
-    return mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets,\
+    return mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, exclude_ips,\
         use_key_file, key_file, credentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
         add_hdd_as_device_properties, add_hdd_as_parts, get_hardware_info, get_os_details, get_cpu_info,\
         get_memory_info, ignore_domain, upload_ipv6, debug, threads, dict_output, give_hostname_precedence,\
@@ -63,8 +64,8 @@ def get_settings():
 caller = os.path.basename(sys._getframe().f_back.f_code.co_filename)
 
 if caller == 'main.py':
-    mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, use_key_file, key_file,\
-        credentials, ssh_port, timeout, get_serial_info, duplicate_serials, add_hdd_as_device_properties,\
+    mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, exclude_ips, use_key_file,\
+        key_file, credentials, ssh_port, timeout, get_serial_info, duplicate_serials, add_hdd_as_device_properties,\
         add_hdd_as_parts, get_hardware_info, get_os_details, get_cpu_info, get_memory_info, ignore_domain,\
         upload_ipv6, debug, THREADS, DICT_OUTPUT, give_hostname_precedence, REMOVE_STALE_IPS = get_settings()
 
@@ -73,8 +74,8 @@ if caller == 'main.py':
 
 else:
     if len(sys.argv) == 5:
-        mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, xtargets, xuse_key_file,\
-            xkey_file, xcredentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
+        mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, xtargets, xexclude_ips,\
+            xuse_key_file, xkey_file, xcredentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
             add_hdd_as_device_properties, add_hdd_as_parts, get_hardware_info, get_os_details, get_cpu_info,\
             get_memory_info, ignore_domain, upload_ipv6, debug, THREADS, DICT_OUTPUT, give_hostname_precedence,\
             REMOVE_STALE_IPS = get_settings()

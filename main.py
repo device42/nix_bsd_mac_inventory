@@ -342,10 +342,18 @@ def main():
     sock.settimeout(float(timeout))
     msg = '\r\n[!] Running %s threads.' % THREADS
     print msg
-    # parse IP address [single or CIDR]
+    # parse IP address [single, range or CIDR]
     if targets:
         ipops = ipop.IPOperations(targets)
-        ip_scope = ipops.sort_ip()
+        scope = ipops.sort_ip()
+
+        # exclude IPs from scope
+        if exclude_ips:
+            xops = ipop.IPOperations(exclude_ips)
+            xscope = xops.sort_ip()
+            ip_scope = set(scope) - set(xscope)
+        else:
+            ip_scope = scope
 
         if not ip_scope:
             msg = '[!] Empty IP address scope! Please, check target IP address[es].'

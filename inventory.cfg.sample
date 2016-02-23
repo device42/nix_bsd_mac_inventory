@@ -22,6 +22,9 @@ secret     =  adm!nd42
 # any combination of above: 192.168.3.0/24,192.168.4.1-192.168.4.10,192.168.55.22,10.0.0.0/24
 targets   =
 
+# exclude IPs from target scope (single, range, cidr or any combination separated by comma)
+exclude_ips=
+
 [credentials]
 # If using key file instead of username and password, enter 'True' for use_key_file setting and
 # path to the private key file. For example:
