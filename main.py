@@ -16,7 +16,7 @@ import module_freebsd as freebsd
 import module_openbsd as openbsd
 import module_aix as aix
 
-__version__ = "3.3"
+__version__ = "3.4"
 
 # environment and other stuff
 lock = threading.Lock()
@@ -74,9 +74,9 @@ def upload(data):
                 rec['device'] = name
             rest.post_mac(rec)
 
-        # remove unused IPs
-        if REMOVE_STALE_IPS and name:
-            remove_stale_ips(ips, name)
+    # remove unused IPs
+    if REMOVE_STALE_IPS and name:
+        remove_stale_ips(ips, name)
 
     # upload hdd_parts if any
     if hdd_parts:
@@ -88,6 +88,7 @@ def remove_stale_ips(ips, name):
     fetched_ips = rest.get_device_by_name(name)
     ips_to_remove = set(fetched_ips) - set(ips)
     if ips_to_remove:
+        print '\n[*] IPs to remove: %s' % ips_to_remove
         for ip in ips_to_remove:
             rest.delete_ip(ip)
 

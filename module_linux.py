@@ -329,18 +329,24 @@ class GetLinuxData:
                             words = row.split()
                             ipindex = words.index('inet') + 1
                             ip = words[ipindex].strip()
-                        if 'inet6 addr:' in row:
+                        # debian/ubuntu
+                        if 'inet6 addr:' in row and row.split()[-1].lower() != 'scope:link':
                             ip6 = row.split()[2]
                             if '%' in ip6:
                                 ip6 = ip6.split('%')[0]
                             if '/' in ip6:
                                 ip6 = ip6.split('/')[0]
-                        elif 'inet6 ' in row and 'addr:' not in row:
+                            if ip6 and ip6 == '::1':
+                                ip6 = ''
+                        # redhat/centos
+                        elif 'inet6 ' in row and 'addr:' not in row and '<link>' not in row and '<host>' not in row:
                             ip6 = row.split()[1]
                             if '%' in ip6:
                                 ip6 = ip6.split('%')[0]
                             if '/' in ip6:
                                 ip6 = ip6.split('/')[0]
+                            if ip6 and ip6 == '::1':
+                                ip6 = ''
                         if 'ether ' in row:
                             words = row.split()
                             macindex = words.index('ether') + 1
@@ -378,64 +384,87 @@ class GetLinuxData:
     def get_ip_ipaddr(self):
         cmd = 'ip addr show'
         data_out, data_err = self.execute(cmd)
-        if not data_err:
+        if not data_err and 'command not found' not in data_out[0]:
+            macmap = {}
+            ipmap = {}
+            ip6map = {}
+            nics = []
+            nicmap = {}
+            current_nic = None
             for rec in data_out:
+                # macs
                 if not rec.startswith('  ') and rec not in ('', '\n'):
-                    raw = rec.split(':')
-                    try:
-                        nic = raw[1].strip()
-                        if nic != 'lo':
-                            self.nics.append(nic)
-                    except IndexError:
-                        pass
-            self.process_nics()
-        else:
-            if self.debug:
-                print '\t[-] Could not get NIC info from host %s. Message was: %s' % (self.machine_name, str(data_err))
-            self.get_ip_ifconfig()
+                    if ':' in rec:
+                        mac = None
+                        raw = rec.split(':')
+                        try:
+                            nic = raw[1].strip()
+                            current_nic = nic
+                            rec_index = data_out.index(rec)
+                            mac_word = data_out[rec_index + 1]
+                            if 'link/ether' in mac_word:
+                                _, mac, _, _ = mac_word.split()
+                            if nic != 'lo' and mac:
+                                macmap.update({nic: mac})
+                        except IndexError:
+                            pass
+                # get nic names and ips
+                elif rec.strip().startswith('inet ') and 'scope global' in rec:
+                    inetdata = rec.split()
+                    ip = inetdata[1].split('/')[0]
+                    interface = inetdata[-1]
+                    if ':' in interface:
+                        macmap.update({interface: macmap[interface.split(':')[0]]})
+                    nics.append(interface)
+                    ipmap.update({interface: ip})
+                elif rec.strip().startswith('inet6 ') and 'scope global' in rec:
+                    inetdata = rec.split()
+                    ip = inetdata[1].split('/')[0]
+                    interface = current_nic
+                    if ':' in interface:
+                        macmap.update({interface: macmap[interface.split(':')[0]]})
+                    nicmap.update({interface: current_nic})
+                    ip6map.update({interface: ip})
 
-    def process_nics(self):
-        if self.nics:
-            for nic in self.nics:
-                macdata = {}
+            # jsonize
+            for nic in nics:
                 nicdata = {}
                 nicdata_v6 = {}
-                mac = None
-                ip = None
-                ip6 = None
-                cmd = 'ip addr show %s ' % nic
-                data_out, data_err = self.execute(cmd)
-                if not data_err:
-                    ip = None
-                    for rec in data_out:
-                        if rec.strip().startswith('inet '):
-                            ip, subnet = rec.split()[1].split('/')
-                        if rec.strip().startswith('inet6 '):
-                            ip6, subnet6 = rec.split()[1].split('/')
-                        if rec.strip().startswith('link/'):
-                            mac = rec.split()[1]
+                macdata = {}
+                if nic in macmap:
+                    mac = macmap[nic]
+                    macdata.update({'device': self.device_name})
+                    macdata.update({'port_name': nic})
+                    macdata.update({'macaddress': mac})
+                if nic in ipmap:
+                    ip = ipmap[nic]
+                    nicdata.update({'device': self.device_name})
+                    nicdata.update({'tag': nic})
+                    nicdata.update({'ipaddress': ip})
+                    if nic in macmap:
+                        mac = macmap[nic]
+                        nicdata.update({'macaddress': mac})
+                if nic in ip6map:
+                    ip6 = ip6map[nic]
+                    nicdata_v6.update({'device': self.device_name})
+                    nicdata_v6.update({'tag': nic})
+                    nicdata_v6.update({'ipaddress': ip6})
+                    if nic in macmap:
+                        mac = macmap[nic]
+                        nicdata_v6.update({'macaddress': mac})
 
-                nicdata.update({'device': self.device_name})
-                nicdata_v6.update({'device': self.device_name})
-                macdata.update({'device': self.device_name})
-                nicdata.update({'tag': nic})
-                nicdata_v6.update({'tag': nic})
-                macdata.update({'port_name': nic})
-                nicdata.update({'macaddress': mac})
-                nicdata_v6.update({'macaddress': mac})
-                macdata.update({'macaddress': mac})
-                nicdata.update({'ipaddress': ip})
-                nicdata_v6.update({'ipaddress': ip6})
-                if ip:
+                if nicdata:
                     self.alldata.append(nicdata)
-                if ip6:
+                if nicdata_v6:
                     self.alldata.append(nicdata_v6)
-                if mac:
+                if macdata:
                     self.alldata.append(macdata)
-                else:
-                    if self.debug:
-                        print '\t[-] Could not get IP info from host %s. Message was: %s' % \
-                              (self.machine_name, str(data_err))
+
+        else:
+            if self.debug:
+                print '\t[-] Could not get NIC info from host %s. Switching to "ifconfig".' \
+                      '\n\t\t Message was: %s' % (self.machine_name, str(data_err))
+            self.get_ip_ifconfig()
 
     def get_hdd(self):
         # get software raids. Hardware raids are way too complicated to fetch automatically.
