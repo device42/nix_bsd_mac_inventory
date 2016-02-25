@@ -40,7 +40,7 @@ def upload(data):
     for rec in data:
         if 'macaddress' not in rec:
             devindex = data.index(rec)
-    if devindex:
+    if devindex != None:
         rec = data[devindex]
         if duplicate_serials:
             result, scode = rest.post_multinodes(rec)
