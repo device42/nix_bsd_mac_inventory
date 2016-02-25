@@ -118,9 +118,13 @@ class GetSolarisData:
             data_err = stderr.readlines()
             if not data_err:
                 for rec in data_out[1:]:
+                    rec= ' '.join(rec.split())
                     nic = rec.split()[0]
                     mac = rec.split()[-1]
-                    macs.update({nic: mac})
+                    flags = rec.split()[3]
+                    #check for the L flag in output (meaning this is for a Local IP)
+                    if  'L' in flags:
+                        macs.update({nic: mac})
                 return macs
             else:
                 print 'Error: ', data_err
@@ -192,30 +196,71 @@ class GetSolarisData:
         else:
             print 'Error: ', data_err
 
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/smbios -t SMB_TYPE_SYSTEM")
+        stdin, stdout, stderr = self.ssh.exec_command("uname -p")
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
-            for rec in data_out:
-                if 'Manufacturer:' in rec:
-                    manufacturer = rec.split(':')[1].strip()
-                    for mftr in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU', 'Microsoft Corporation', 'Xen', 'innotek',
-                                 'innotek GmbH']:
-                        if mftr.lower() == manufacturer.lower():
-                            self.sysdata.update({'manufacturer': 'virtual'})
-                            break
-                        if manufacturer != 'virtual':
+            if data_out[0].strip(" \n") == "sparc":
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf")
+                data_out = stdout.readlines()
+                data_err  = stderr.readlines()
+                if not data_err:
+                    for rec in data_out:
+                        if 'System Configuration:' in rec:
+                            manufacturer = rec.split(':')[1].strip()
+                            manufacturer = manufacturer.rsplit(' ', 1)[0].strip()
                             self.sysdata.update({'manufacturer': manufacturer})
-                if 'Product:' in rec:
-                    if self.get_hardware_info:
-                        hardware = rec.split(':')[1].strip()
-                        self.sysdata.update({'hardware': hardware})
-                if 'Serial ' in rec:
-                    if self.get_serial_info:
-                        serial = rec.split(':')[1].strip()
-                        self.sysdata.update({'serial_no': serial})
-                if 'UUID' in rec:
-                    uuid = rec.split(':')[1].strip()
-                    self.sysdata.update({'uuid': uuid})
-        else:
-            print 'Error: ', data_err
+                else:
+                    print 'Error: ', data_err
+
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/sneep")
+                data_out = stdout.readlines()
+                data_err  = stderr.readlines()
+                if not data_err:
+                    serial = data_out[0].strip()
+                    self.sysdata.update({'serial_no': serial})
+                else:
+                    print 'Error: ', data_err
+
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf -b")
+                data_out = stdout.readlines()
+                data_err  = stderr.readlines()
+                if not data_err:
+                    for rec in data_out:
+                        if 'banner-name:' in rec:
+                            if self.get_hardware_info:
+                                hardware = rec.split(':')[1].strip()
+                                self.sysdata.update({'hardware': hardware})
+                else:
+                    print 'Error: ', data_err
+
+                #SPARC does not have a UUID (at least for global zones)
+                self.sysdata.update({'uuid': '00000000-0000-0000-0000-000000000000'})
+
+            else:
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/smbios -t SMB_TYPE_SYSTEM")
+                data_out = stdout.readlines()
+                data_err = stderr.readlines()
+                if not data_err:
+                    for rec in data_out:
+                        if 'Manufacturer:' in rec:
+                            manufacturer = rec.split(':')[1].strip()
+                            for mftr in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU', 'Microsoft Corporation', 'Xen', 'innotek', 'innotek GmbH']:
+                                if mftr.lower() == manufacturer.lower():
+                                    self.sysdata.update({'manufacturer': 'virtual'})
+                                    break
+                                if manufacturer != 'virtual':
+                                    self.sysdata.update({'manufacturer': manufacturer})
+                        if 'Product:' in rec:
+                            if self.get_hardware_info:
+                                hardware = rec.split(':')[1].strip()
+                                self.sysdata.update({'hardware': hardware})
+                        if 'Serial ' in rec:
+                            if self.get_serial_info:
+                                serial = rec.split(':')[1].strip()
+                                self.sysdata.update({'serial_no': serial})
+                        if 'UUID' in rec:
+                            uuid = rec.split(':')[1].strip()
+                            self.sysdata.update({'uuid': uuid})
+                else:
+                    print 'Error: ', data_err
