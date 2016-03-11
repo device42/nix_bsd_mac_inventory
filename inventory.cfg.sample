@@ -45,7 +45,6 @@ ssh_port      = 22
 timeout       = 10
 
 [options]
-[options]
 get_serial_info    			= True
 get_hardware_info  			= True
 get_os_details     			= True
