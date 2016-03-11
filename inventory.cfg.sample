@@ -45,16 +45,18 @@ ssh_port      = 22
 timeout       = 10
 
 [options]
+[options]
 get_serial_info    			= True
 get_hardware_info  			= True
 get_os_details     			= True
 get_cpu_info       			= True
 get_memory_info    			= True
 ignore_domain      			= False
+ignore_virtual_machines		= False
 upload_ipv6        			= True
 duplicate_serials  			= False
-remove_stale_ips			= False
-add_hdd_as_device_properties= False
+remove_stale_ips			= True
+add_hdd_as_device_properties= True
 add_hdd_as_parts			= True
 give_hostname_precedence	= True
 debug              			= True
