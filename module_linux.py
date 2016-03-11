@@ -8,7 +8,7 @@ class GetLinuxData:
     def __init__(self, base_url, username, secret, ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
                  get_serial_info, add_hdd_as_device_properties, add_hdd_as_parts,
                  get_hardware_info, get_os_details, get_cpu_info, get_memory_info,
-                 ignore_domain, upload_ipv6, give_hostname_precedence, debug):
+                 ignore_domain, ignore_virtual_machines, upload_ipv6, give_hostname_precedence, debug):
 
         self.d42_api_url = base_url
         self.d42_username = username
@@ -26,6 +26,7 @@ class GetLinuxData:
         self.get_cpu_info = get_cpu_info
         self.get_memory_info = get_memory_info
         self.ignore_domain = ignore_domain
+        self.ignore_virtual_machines = ignore_virtual_machines
         self.upload_ipv6 = upload_ipv6
         self.name_precedence = give_hostname_precedence
         self.add_hdd_as_devp = add_hdd_as_device_properties
@@ -48,7 +49,9 @@ class GetLinuxData:
     def main(self):
         self.connect()
         self.are_u_root()
-        self.get_system()
+        dtype = self.get_system()
+        if dtype == 'virtual' and self.ignore_virtual_machines:
+            return self.alldata
         if self.get_memory_info:
             self.get_ram()
         if self.get_cpu_info:
@@ -159,13 +162,18 @@ class GetLinuxData:
                             if manufacturer in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU',
                                                 'Microsoft Corporation', 'Xen', 'innotek GmbH']:
                                 dev_type = 'virtual'
-                                self.devargs.update({'type': dev_type})
+                                if self.ignore_virtual_machines and dev_type == 'virtual':
+                                    self.devargs.clear()
+                                    return 'virtual'
+                                else:
+                                    self.devargs.update({'type': dev_type})
                         if rec.startswith('UUID:'):
                             uuid = rec.split(':')[1].strip()
                             self.devargs.update({'uuid': uuid})
                         if rec.startswith('Serial Number:'):
                             serial = rec.split(':')[1].strip()
-                            self.devargs.update({'serial_no': serial})
+                            if self.get_serial_info:
+                                self.devargs.update({'serial_no': serial})
                         if rec.startswith('Product Name:') and dev_type != 'virtual':
                             hardware = rec.split(':')[1].strip()
                             self.devargs.update({'hardware': hardware})
@@ -187,13 +195,18 @@ class GetLinuxData:
                     if manufacturer in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU',
                                         'Microsoft Corporation', 'Xen', 'innotek GmbH']:
                         dev_type = 'virtual'
-                        self.devargs.update({'type': dev_type})
+                        if self.ignore_virtual_machines and dev_type == 'virtual':
+                            self.devargs.clear()
+                            return 'virtual'
+                        else:
+                            self.devargs.update({'type': dev_type})
                 if 'product_uuid:' in rec:
                     uuid = rec.split(':')[1].strip()
                     self.devargs.update({'uuid': uuid})
                 if 'product_serial:' in rec:
                     serial = rec.split(':')[1].strip()
-                    self.devargs.update({'serial_no': serial})
+                    if self.get_serial_info:
+                        self.devargs.update({'serial_no': serial})
                 if 'product_name:' in rec and dev_type != 'virtual':
                     hardware = rec.split(':')[1].strip()
                     self.devargs.update({'hardware': hardware})
@@ -215,13 +228,18 @@ class GetLinuxData:
                     if manufacturer in ['VMware, Inc.', 'Bochs', 'KVM', 'QEMU',
                                         'Microsoft Corporation', 'Xen', 'innotek GmbH']:
                         dev_type = 'virtual'
-                        self.devargs.update({'type': dev_type})
+                        if self.ignore_virtual_machines and dev_type == 'virtual':
+                            self.devargs.clear()
+                            return 'virtual'
+                        else:
+                            self.devargs.update({'type': dev_type})
                 if 'system.hardware.uuid' in rec:
                     uuid = rec.split('=')[1].split('(')[0].strip()
                     self.devargs.update({'uuid': uuid})
                 if 'system.hardware.serial' in rec:
                     serial = rec.split('=')[1].split('(')[0].strip()
-                    self.devargs.update({'serial_no': serial})
+                    if self.get_serial_info:
+                        self.devargs.update({'serial_no': serial})
                 if 'system.hardware.product' in rec and dev_type != 'virtual':
                     hardware = rec.split('=')[1].split('(')[0].strip()
                     self.devargs.update({'hardware': hardware})
@@ -399,6 +417,8 @@ class GetLinuxData:
                         raw = rec.split(':')
                         try:
                             nic = raw[1].strip()
+                            if '@' in nic:
+                                nic = nic.split('@')[0]
                             current_nic = nic
                             rec_index = data_out.index(rec)
                             mac_word = data_out[rec_index + 1]

@@ -16,7 +16,7 @@ import module_freebsd as freebsd
 import module_openbsd as openbsd
 import module_aix as aix
 
-__version__ = "3.4"
+__version__ = "3.5"
 
 # environment and other stuff
 lock = threading.Lock()
@@ -60,9 +60,7 @@ def upload(data):
 
     # upload IPs and MACs
     for rec in data:
-        if 'macaddress' not in rec:
-            pass
-        elif 'ipaddress' in rec:
+        if 'ipaddress' in rec:
             ip = rec['ipaddress']
             if ip:
                 ips.append(ip)
@@ -101,7 +99,7 @@ def get_linux_data(ip, usr, pwd):
         linux = ml.GetLinuxData(base_url, username, secret, ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
                                 get_serial_info, add_hdd_as_device_properties, add_hdd_as_parts,
                                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info,
-                                ignore_domain, upload_ipv6, give_hostname_precedence, debug)
+                                ignore_domain, ignore_virtual_machines, upload_ipv6, give_hostname_precedence, debug)
 
         data = linux.main()
         if debug:
