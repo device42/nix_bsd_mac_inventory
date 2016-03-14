@@ -58,6 +58,7 @@ remove_stale_ips			= True
 add_hdd_as_device_properties= True
 add_hdd_as_parts			= True
 give_hostname_precedence	= True
+mac_lookup					= False
 debug              			= True
 threads            			= 50
 dict_output        			= False

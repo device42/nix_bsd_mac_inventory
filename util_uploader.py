@@ -23,9 +23,12 @@ class Rest:
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-    def uploader(self, data, url):
+    def uploader(self, data, url, method=None):
         payload = data
-        r = requests.post(url, data=payload, headers=self.headers, verify=False)
+        if method == 'put':
+            r = requests.put(url, data=payload, headers=self.headers, verify=False)
+        else:
+            r = requests.post(url, data=payload, headers=self.headers, verify=False)
         msg = unicode(payload)
         if self.debug:
             print msg
@@ -58,6 +61,16 @@ class Rest:
             return r.json()
         else:
             return status_code
+
+    def put_device(self, data):
+        if not DRY_RUN:
+            url = self.base_url + '/api/1.0/device/'
+            msg = '\r\nUpdating device by mac %s ' % url
+            if self.debug:
+                print msg
+            method = 'put'
+            result, scode = self.uploader(data, url, method)
+            return result, scode
 
     def post_device(self, data):
         if not DRY_RUN:

@@ -16,16 +16,78 @@ import module_freebsd as freebsd
 import module_openbsd as openbsd
 import module_aix as aix
 
-__version__ = "3.5"
+__version__ = "3.6"
 
 # environment and other stuff
 lock = threading.Lock()
 q = Queue.Queue()
 
 
+def mac_lookup_map():
+    rest = uploader.Rest(base_url, username, secret, debug)
+    url = base_url + '/api/1.0/macs/'
+    response = rest.fetcher(url)
+
+    #print json.dumps(r, indent=4, sort_keys=True)
+    if  isinstance(response, dict):
+        macs = response['macaddresses']
+        mac_devid_map = {}
+
+        # single device might have multiple macs
+        # create dict to store dev_id:{mac_id:mac} mappings
+        macdb = {}
+        for m in macs:
+            try:
+                mid = int(m['macaddress_id'])
+                mac = m['macaddress']
+                dev_id = m['device']['device_id']
+                if dev_id not in macdb:
+                    macdb.update({dev_id:[{mid:mac}]})
+                else:
+                    macdb[dev_id].append({mid:mac})
+            except:
+                pass
+        if macdb:
+            for k,values in macdb.items():
+                # we must discover smallest mac_id. Mac with smallest mac_id is the 'first' one and it is used for mac lookup
+                smallest = 99999999999999999999
+                mac = None
+                dev_id = k
+                for value in values:
+                    mid = value.keys()[0]
+                    if mid < smallest:
+                        smallest = mid
+                        mac = value[mid]
+                # create mac:dev_id mapping
+                mac_devid_map.update({mac:dev_id})
+
+            macdb.clear()
+        return mac_devid_map
+
+
+def find_devid_by_mac(data):
+    macs = []
+    for rec in data:
+        if 'macaddress' in rec:
+            m = rec['macaddress']
+            macs.append(m)
+
+    for mac in macs:
+        if mac in mac_devid_map:
+            dev_id = mac_devid_map[mac]
+            return dev_id
+
+
+
 def upload(data):
+    dev_id = None
+    if mac_lookup:
+        dev_id = find_devid_by_mac(data)
+
+
     ips = []
     name = None
+    result = None
     rest = uploader.Rest(base_url, username, secret, debug)
 
     # get hdd parts if any
@@ -42,16 +104,30 @@ def upload(data):
             devindex = data.index(rec)
     if devindex != None:
         rec = data[devindex]
-        if duplicate_serials:
-            result, scode = rest.post_multinodes(rec)
+        if mac_lookup and dev_id and not duplicate_serials:
+            rec.update({'device_id':dev_id})
+            result, scode = rest.put_device(rec)
             if scode != 200:
-                print '\n[!] Error! Could not upload devices: %s\n' % str(rec)
+                print '\n[!] Error! Could not upload device: %s\n' % str(rec)
                 return
+        elif duplicate_serials:
+            if mac_lookup and dev_id:
+                rec.update({'device_id':dev_id})
+                result, scode = rest.put_device(rec)
+                if scode != 200:
+                    print '\n[!] Error! Could not upload device: %s\n' % str(rec)
+                    return
+            else:
+                result, scode = rest.post_multinodes(rec)
+                if scode != 200:
+                    print '\n[!] Error! Could not upload devices: %s\n' % str(rec)
+                    return
         else:
             result, scode = rest.post_device(rec)
             if scode != 200:
                 print '\n[!] Error! Could not upload device: %s\n' % str(rec)
                 return
+
         try:
             name = result['msg'][2]
         except IndexError:
@@ -262,6 +338,8 @@ def check_os(ip):
             if cred not in ('', ' ', '\n'):
                 try:
                     usr, pwd = cred.split(':')
+                    usr = usr.strip()
+                    pwd = pwd.strip()
                 except ValueError:
                     print '\n[!] Error. \n\tPlease check credentials formatting. It should look like user:password\n'
                     sys.exit()
@@ -337,6 +415,8 @@ def check_os(ip):
 
 
 def main():
+    if mac_lookup:
+        mac_lookup_map()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(float(timeout))
     msg = '\r\n[!] Running %s threads.' % THREADS
@@ -389,9 +469,16 @@ def main():
 
 if __name__ == '__main__':
     from module_shared import *
-
+    if mac_lookup:
+        if debug:
+            print '\n[!] Creating MAC<->deviceID map for MAC lookup.\n'
+        mac_devid_map = mac_lookup_map()
     main()
     sys.exit()
 else:
     # you can use dict_output if called from external script (starter.py)
     from module_shared import *
+    if mac_lookup:
+        if debug:
+            print '\n[!] Creating MAC<->deviceID map for MAC lookup.\n'
+        mac_devid_map = mac_lookup_map()

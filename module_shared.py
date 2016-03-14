@@ -50,6 +50,7 @@ def get_settings():
     add_hdd_as_device_properties = cc.getboolean('options', 'add_hdd_as_device_properties')
     add_hdd_as_parts = cc.getboolean('options', 'add_hdd_as_parts')
     give_hostname_precedence = cc.getboolean('options', 'give_hostname_precedence')
+    mac_lookup = cc.getboolean('options', 'mac_lookup')
     debug = cc.getboolean('options', 'debug')
     threads = cc.get('options', 'threads')
     dict_output = cc.getboolean('options', 'dict_output')
@@ -58,7 +59,7 @@ def get_settings():
         use_key_file, key_file, credentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
         add_hdd_as_device_properties, add_hdd_as_parts, get_hardware_info, get_os_details, get_cpu_info,\
         get_memory_info, ignore_domain, ignore_virtual_machines, upload_ipv6, debug, threads, dict_output, \
-        give_hostname_precedence,remove_stale_ips
+        give_hostname_precedence, mac_lookup, remove_stale_ips
 
 
 # noinspection PyProtectedMember
@@ -68,8 +69,8 @@ if caller == 'main.py':
     mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, exclude_ips, use_key_file,\
         key_file, credentials, ssh_port, timeout, get_serial_info, duplicate_serials, add_hdd_as_device_properties,\
         add_hdd_as_parts, get_hardware_info, get_os_details, get_cpu_info, get_memory_info, ignore_domain,\
-        ignore_virtual_machines, upload_ipv6, debug, THREADS, DICT_OUTPUT, give_hostname_precedence, REMOVE_STALE_IPS \
-        = get_settings()
+        ignore_virtual_machines, upload_ipv6, debug, THREADS, DICT_OUTPUT, give_hostname_precedence, mac_lookup, \
+        REMOVE_STALE_IPS = get_settings()
 
     ssh_port = int(ssh_port)
     timeout = int(timeout)
@@ -80,7 +81,7 @@ else:
             xuse_key_file, xkey_file, xcredentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
             add_hdd_as_device_properties, add_hdd_as_parts, get_hardware_info, get_os_details, get_cpu_info,\
             get_memory_info, ignore_domain, ignore_virtual_machines, upload_ipv6, debug, THREADS, DICT_OUTPUT, \
-            give_hostname_precedence, REMOVE_STALE_IPS = get_settings()
+            give_hostname_precedence, mac_lookup, REMOVE_STALE_IPS = get_settings()
 
         ssh_port = int(ssh_port)
         timeout = int(timeout)
