@@ -136,3 +136,18 @@ class Rest:
             for ip_id in ip_ids:
                 url = self.base_url + '/api/1.0/ips/%s' % ip_id
                 self.deleter(url)
+
+    def get_device_by_mac(self, mac):
+        if not DRY_RUN:
+            url = self.base_url + '/api/1.0/macs/?mac=%s' % mac
+            msg = '\r\nFind device by mac:  %s ' % mac
+            if self.debug:
+                print msg
+            response = self.fetcher(url)
+            if isinstance(response, dict) and 'macaddresses' in response:
+                dev_id = [x['device']['device_id'] for x in response['macaddresses'] if 'device' in x]
+                if dev_id:
+                    try:
+                        return dev_id[0]
+                    except:
+                        pass
