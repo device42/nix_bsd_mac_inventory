@@ -500,7 +500,7 @@ class GetLinuxData:
 
     def get_hdd_names(self):
         hdd_names = []
-        cmd = '/sbin/fdisk -l | grep "Disk /dev"'
+        cmd = '/sbin/fdisk -l | grep -v "ram" | grep "Disk /dev"'
         data_out, data_err = self.execute(cmd, True)
         errhdds = []
         if data_err:
