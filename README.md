@@ -26,6 +26,7 @@ Supported targets:
 	
 ### Usage
 -----------------------------
+* Copy inventory.cfg.sample to inventory.cfg.
 * Run from main.py and use settings from inventory.cfg. Run against multiple targets, use multithreading and multiple credentials.
 * Run from starter.py, use settings from inventory.cfg but specify (overwrite) single target, use_key_file, key_file, username and password from command line (take a look @ starter.py source)
 
