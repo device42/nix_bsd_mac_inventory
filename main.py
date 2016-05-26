@@ -16,7 +16,7 @@ import module_freebsd as freebsd
 import module_openbsd as openbsd
 import module_aix as aix
 
-__version__ = "3.7"
+__version__ = "3.8"
 
 # environment and other stuff
 lock = threading.Lock()
@@ -43,10 +43,11 @@ def upload(data):
         dev_id = find_devid_by_mac(data, rest)
 
     # get hdd parts if any
-    hdd_parts = {}
+    hdd_parts = []
     for rec in data:
         if 'hdd_parts' in rec:
-            hdd_parts.update(rec['hdd_parts'])
+            for part in rec['hdd_parts']:
+                hdd_parts.append(part)
             data.remove(rec)
 
     # Upload device first and get name back
@@ -106,7 +107,8 @@ def upload(data):
 
     # upload hdd_parts if any
     if hdd_parts:
-        rest.post_parts(hdd_parts)
+        for part in hdd_parts:
+            rest.post_parts(part)
 
 
 def remove_stale_ips(ips, name):

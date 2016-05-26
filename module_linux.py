@@ -1,6 +1,5 @@
 import ast
 import math
-
 import paramiko
 
 
@@ -30,13 +29,14 @@ class GetLinuxData:
         self.upload_ipv6 = upload_ipv6
         self.name_precedence = give_hostname_precedence
         self.add_hdd_as_devp = add_hdd_as_device_properties
+        self.add_hdd_as_devp = False # do not edit, take a look at the inventory.config.example for details
         self.add_hdd_as_parts = add_hdd_as_parts
         self.debug = debug
         self.root = True
         self.devicename = None
         self.disk_sizes = {}
         self.raids = {}
-        self.hdd_parts = {}
+        self.hdd_parts = []
         self.device_name = None
         self.os = None
 
@@ -87,14 +87,18 @@ class GetLinuxData:
                 stdin, stdout, stderr = self.ssh.exec_command(cmd)
             else:
                 cmd_sudo = "sudo -S -p '' %s" % cmd
+                print '\nCOMMAND: %s\n' % cmd_sudo
                 stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
         else:
             stdin, stdout, stderr = self.ssh.exec_command(cmd)
         data_err = stderr.readlines()
-        data_out = stdout.readlines()
-
+        try:
+            data_out = stdout.readlines()
+        except UnicodeDecodeError:
+            data_x = stdout.read()
+            data_out = data_x.split('\n')
         if data_err and 'sudo: command not found' in str(data_err):
             stdin, stdout, stderr = self.ssh.exec_command(cmd)
             data_err = stderr.readlines()
@@ -487,20 +491,19 @@ class GetLinuxData:
             self.get_ip_ifconfig()
 
     def get_hdd(self):
-        # get software raids. Hardware raids are way too complicated to fetch automatically.
-        self.get_sw_raids()
-        # ==================
-
         hdds = self.get_hdd_names()
-        if hdds:
-            if self.add_hdd_as_devp:
-                self.devargs.update({'hddcount': len(hdds)})
-            for hdd in hdds:
-                self.get_hdd_info(hdd)
+        hw_hdds = [x for x in hdds if '/mapper' not in x]
+        if hw_hdds:
+            if self.add_hdd_as_devp :
+                self.devargs.update({'hddcount': len(hw_hdds)})
+            for hdd in hw_hdds:
+                hdd_part = self.get_hdd_info_hdaparm(hdd)
+                if hdd_part:
+                    self.hdd_parts.append(hdd_part)
 
     def get_hdd_names(self):
         hdd_names = []
-        cmd = '/sbin/fdisk -l | grep -v "ram" | grep "Disk /dev"'
+        cmd = '/sbin/fdisk -l | grep -v "ram\|mapper" | grep "Disk /dev"'
         data_out, data_err = self.execute(cmd, True)
         errhdds = []
         if data_err:
@@ -527,35 +530,31 @@ class GetLinuxData:
                         self.devargs.update({'hddsize': size})
                 hdd_names.append(disk_name)
                 self.disk_sizes.update({disk_name: size})
-            except Exception, e:
+            except Exception as e:
                 print e
-                pass
+
         return hdd_names
 
-    def get_hdd_info(self, hdd):
-        pass
-
     def get_hdd_info_hdaparm(self, hdd):
-        # if hdd not in self.raids:
         cmd = 'hdparm -I %s' % hdd
         data_out, data_err = self.execute(cmd, True)
         if data_err:
+            if self.debug:
+                print '[-] Error in get_hdd_info_hdaparm() for IP: %s . Message was: %s' % (self.machine_name, data_err)
             return
         else:
+            hdd_part = {}
             for rec in data_out:
                 if 'model number' in rec.lower():
                     model = rec.split(':')[1].strip()
                     size = self.disk_sizes[hdd]
-                    self.hdd_parts.update({'device': self.device_name})
-                    self.hdd_parts.update({'name': model})
-                    self.hdd_parts.update({'type': 'hdd'})
-                    self.hdd_parts.update({'hddsize': size})
+                    hdd_part.update({'device': self.device_name})
+                    hdd_part.update({'name': model})
+                    hdd_part.update({'type': 'hdd'})
+                    hdd_part.update({'hddsize': size})
                 if 'serial number' in rec.lower():
                     serial = rec.split(':')[1].strip()
-                    self.hdd_parts.update({'serial_no': serial})
-                if 'rotation rate' in rec.lower():
-                    rpm = rec.split(':')[1].strip()
-                    self.hdd_parts.update({'hddrpm': rpm})
+                    hdd_part.update({'serial_no': serial})
                 if 'transport:' in rec.lower():
                     if ',' in rec:
                         try:
@@ -564,38 +563,13 @@ class GetLinuxData:
                             transport = (rec.split(',')[-1])
                     else:
                         transport = rec.lower()
-                    self.hdd_parts.update({'hddtype': transport})
+                    hdd_part.update({'hddtype': transport})
+                if 'rotation rate' in rec.lower():
+                    rpm = rec.split(':')[1].strip()
+                    if not rpm == 'Solid State Device':
+                        hdd_part.update({'hddrpm': rpm})
+                    else:
+                        hdd_part.update({'hddtype': 'SSD'})
+            return hdd_part
 
-    def get_sw_raids(self):
-        cmd = 'cat /proc/mdstat'
-        # Note:  we can get raid members here if needed!
-        data_out, data_err = self.execute(cmd, False)
-        if not data_err:
-            for rec in data_out:
-                if "active raid" in rec:
-                    hddraid = 'software'
-                    raw = rec.split()
-                    for entry in raw:
-                        if 'raid' in entry:
-                            rtype = entry.strip()
-                            hddraid_type = self.raid_type(rtype)
-                            if self.add_hdd_as_devp:
-                                self.devargs.update({'hddraid': hddraid})
-                                self.devargs.update({'hddraid_type': hddraid_type})
-                            if self.add_hdd_as_parts:
-                                self.hdd_parts.update({'raid_type': hddraid_type})
 
-    @staticmethod
-    def raid_type(rtype):
-        types = {'raido': 'raid 0',
-                 'raid1': 'raid 1',
-                 'raid3': 'raid 3',
-                 'raid4': 'raid 4',
-                 'raid5': 'raid 5',
-                 'raid6': 'raid 6',
-                 'raid10': 'raid 10',
-                 'raid50': 'raid 50'}
-        if rtype in types:
-            return types[rtype]
-        else:
-            return rtype
