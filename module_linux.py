@@ -87,7 +87,6 @@ class GetLinuxData:
                 stdin, stdout, stderr = self.ssh.exec_command(cmd)
             else:
                 cmd_sudo = "sudo -S -p '' %s" % cmd
-                print '\nCOMMAND: %s\n' % cmd_sudo
                 stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
