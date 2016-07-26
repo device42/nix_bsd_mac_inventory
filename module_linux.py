@@ -547,7 +547,7 @@ class GetLinuxData:
                 if 'model number' in rec.lower():
                     model = rec.split(':')[1].strip()
                     size = self.disk_sizes[hdd]
-                    hdd_part.update({'device': self.device_name})
+                    hdd_part.update({'device': self.device_name, 'assignment':'device'})
                     hdd_part.update({'name': model})
                     hdd_part.update({'type': 'hdd'})
                     hdd_part.update({'hddsize': size})
