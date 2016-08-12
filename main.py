@@ -181,7 +181,7 @@ def get_linux_data(ip, usr, pwd):
         print '[+] Collecting data from: %s' % ip
         lock.release()
         linux = ml.GetLinuxData(base_url, username, secret, ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
-                                get_serial_info, add_hdd_as_device_properties, add_hdd_as_parts,
+                                get_serial_info, add_hdd_as_device_properties, add_hdd_as_parts, add_nic_as_parts,
                                 get_hardware_info, get_os_details, get_cpu_info, get_memory_info,
                                 ignore_domain, ignore_virtual_machines, upload_ipv6, give_hostname_precedence, debug)
 

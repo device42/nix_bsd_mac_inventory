@@ -6,7 +6,7 @@ import paramiko
 
 class GetLinuxData:
     def __init__(self, base_url, username, secret, ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
-                 get_serial_info, add_hdd_as_device_properties, add_hdd_as_parts,
+                 get_serial_info, add_hdd_as_device_properties, add_hdd_as_parts, add_nic_as_parts,
                  get_hardware_info, get_os_details, get_cpu_info, get_memory_info,
                  ignore_domain, ignore_virtual_machines, upload_ipv6, give_hostname_precedence, debug):
 
@@ -32,7 +32,7 @@ class GetLinuxData:
         self.add_hdd_as_devp = add_hdd_as_device_properties
         self.add_hdd_as_devp = False # do not edit, take a look at the inventory.config.example for details
         self.add_hdd_as_parts = add_hdd_as_parts
-        self.add_nic_as_parts = True
+        self.add_nic_as_parts = add_nic_as_parts
         self.debug = debug
         self.root = True
         self.devicename = None
