@@ -106,10 +106,10 @@ class Rest:
                 print msg
             self.uploader(data, url)
 
-    def post_parts(self, data):
+    def post_parts(self, data, category):
         if not DRY_RUN:
             url = self.base_url + '/api/1.0/parts/'
-            msg = '\r\nPosting HDD parts to %s ' % url
+            msg = '\r\nPosting %s parts to %s ' % (category, url)
             if self.debug:
                 print msg
             self.uploader(data, url)

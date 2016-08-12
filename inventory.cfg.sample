@@ -63,3 +63,4 @@ dict_output        			= False
 #Device properties doesn't handle asymmetrical disk configs well. Better handled in parts.
 add_hdd_as_device_properties= False 
 add_hdd_as_parts			= True
+add_nic_as_parts			= True

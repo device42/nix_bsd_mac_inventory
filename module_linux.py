@@ -1,5 +1,6 @@
 import ast
 import math
+
 import paramiko
 
 
@@ -31,12 +32,14 @@ class GetLinuxData:
         self.add_hdd_as_devp = add_hdd_as_device_properties
         self.add_hdd_as_devp = False # do not edit, take a look at the inventory.config.example for details
         self.add_hdd_as_parts = add_hdd_as_parts
+        self.add_nic_as_parts = True
         self.debug = debug
         self.root = True
         self.devicename = None
         self.disk_sizes = {}
         self.raids = {}
         self.hdd_parts = []
+        self.nic_parts = []
         self.device_name = None
         self.os = None
 
@@ -49,6 +52,9 @@ class GetLinuxData:
     def main(self):
         self.connect()
         self.are_u_root()
+        if self.add_nic_as_parts:
+            self.nic_parts = self.get_physical_nics()
+            self.alldata.append(self.nic_parts)
         dtype = self.get_system()
         if dtype == 'virtual' and self.ignore_virtual_machines:
             return self.alldata
@@ -63,7 +69,8 @@ class GetLinuxData:
         self.alldata.append(self.devargs)
         if self.add_hdd_as_parts:
             self.alldata.append({'hdd_parts': self.hdd_parts})
-
+        if self.add_nic_as_parts:
+            self.alldata.append({'nic_parts': self.nic_parts})
         return self.alldata
 
     def connect(self):
@@ -284,6 +291,20 @@ class GetLinuxData:
                     if self.debug:
                         print '\t[-] Could not get OS info from host %s. Message was: %s' % (
                             self.machine_name, str(data_err))
+        if data_err and 'command not found' in data_err[0]:
+            cmd = 'python3 -c "import platform; raw = list(platform.dist());' \
+                  'raw.append(platform.release());print (raw)"'
+            data_out, data_err = self.execute(cmd)
+            if not data_err:
+                self.os, ver, release, kernel_version = ast.literal_eval(data_out[0])
+                self.devargs.update({'os': self.os})
+                self.devargs.update({'osver': ver})
+                self.devargs.update({'osverno': kernel_version})
+            else:
+                if self.debug:
+                    print '\t[-] Could not get OS info from host %s. Message was: %s' % (
+                        self.machine_name, str(data_err))
+
 
         else:
             if self.debug:
@@ -429,6 +450,9 @@ class GetLinuxData:
                                 _, mac, _, _ = mac_word.split()
                             if nic != 'lo' and mac:
                                 macmap.update({nic: mac})
+                                if self.add_nic_as_parts:
+                                    if nic in self.nic_parts:
+                                        self.nic_parts[nic]["serial_no"]=mac
                         except IndexError:
                             pass
                 # get nic names and ips
@@ -547,7 +571,7 @@ class GetLinuxData:
                 if 'model number' in rec.lower():
                     model = rec.split(':')[1].strip()
                     size = self.disk_sizes[hdd]
-                    hdd_part.update({'device': self.device_name})
+                    hdd_part.update({'device': self.device_name, 'assignment': 'device'})
                     hdd_part.update({'name': model})
                     hdd_part.update({'type': 'hdd'})
                     hdd_part.update({'hddsize': size})
@@ -571,4 +595,31 @@ class GetLinuxData:
                         hdd_part.update({'hddtype': 'SSD'})
             return hdd_part
 
+    def get_physical_nics(self):
+        nics = {}
+        device_name = self.get_name()
+        cmd = "find /sys/devices/pci0000:00 -name net -exec ls '{}' \; -exec dirname '{}' \;"
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            for i in range(0, len(data_out), 2):
+                nic = data_out[i].strip()
+                path = data_out[i + 1].strip()
+                cmd = "cat %s/vendor; cat %s/device" % (path, path)
+                codes_out, codes_err = self.execute(cmd)
+                if not codes_err:
+                    try:
+                        codes_out = [x.split('x')[1].strip() for x in codes_out]
+                        vendor_code, model_code = codes_out
+                        nics.update({nic:{"manufacturer":vendor_code,
+                                          "name": model_code,
+                                          "serial_no": None,
+                                          "device": device_name}})
+                    except Exception as e:
+                        print e
+                else:
+                    print 'ERROR ', codes_err
+        else:
+            if self.debug:
+                print '[!] Error in get_physical_nics(). Message was: %s' % data_err
 
+        return nics

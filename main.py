@@ -1,26 +1,28 @@
 #!/usr/bin/env python
 
 import Queue
+import codecs
 import socket
 import threading
 import time
+
 import paramiko
 
-# import custom modules
-import util_uploader as uploader
-import util_ip_operations as ipop
-import module_linux as ml
-import module_solaris as ms
-import module_mac as mc
-import module_freebsd as freebsd
-import module_openbsd as openbsd
 import module_aix as aix
+import module_freebsd as freebsd
+import module_linux as ml
+import module_mac as mc
+import module_openbsd as openbsd
+import module_solaris as ms
+import util_ip_operations as ipop
+import util_uploader as uploader
 
-__version__ = "3.8"
+__version__ = "3.9"
 
 # environment and other stuff
 lock = threading.Lock()
 q = Queue.Queue()
+pci_vendor_cache = {}
 
 def find_devid_by_mac(data, rest):
     macs = []
@@ -48,6 +50,13 @@ def upload(data):
         if 'hdd_parts' in rec:
             for part in rec['hdd_parts']:
                 hdd_parts.append(part)
+            data.remove(rec)
+
+    # get nic parts if any
+    nic_parts = []
+    for rec in data:
+        if 'nic_parts' in rec:
+            nic_parts = resolve_pci(rec)
             data.remove(rec)
 
     # Upload device first and get name back
@@ -108,8 +117,53 @@ def upload(data):
     # upload hdd_parts if any
     if hdd_parts:
         for part in hdd_parts:
-            rest.post_parts(part)
+            rest.post_parts(part, 'HDD')
 
+    # upload nic_parts if any
+    if nic_parts:
+        for part in nic_parts:
+            rest.post_parts(part, 'NIC')
+
+def resolve_pci(raw):
+    data = raw['nic_parts']
+    nic_parts = []
+    for nic, part in data.items():
+        vendor_code = part['manufacturer']
+        model_code = part['name']
+        serial = part['serial_no']
+        device = part['device']
+
+        # find vendor
+        vendor_name = None
+        if vendor_code in pci_vendor_cache:
+            vendor_name = pci_vendor_cache[vendor_code]
+        else:
+            for record in pci_database:
+                if record.startswith(vendor_code):
+                    vendor_name = record.lstrip(vendor_code).strip()
+                    pci_vendor_cache.update({vendor_code: vendor_name})
+
+        # find model
+        model_name = None
+        for rec in pci_database:
+            if rec.strip().startswith(vendor_code):
+                if model_code in rec:
+                    model_name = ' '.join(rec.split()[2:])
+                    break
+        if not model_name:
+            # needed for some cards like "Wilkins Peak"
+            for rec in pci_database:
+                if rec.strip().startswith(model_code):
+                    model_name = ' '.join(rec.split()[1:])
+                    break
+
+        nic_parts.append({"manufacturer": vendor_name,
+                               "name": model_name,
+                               "serial_no": serial,
+                               "device": device,
+                               "type": 'NIC',
+                                'assignment': 'device'})
+    return nic_parts
 
 def remove_stale_ips(ips, name):
     rest = uploader.Rest(base_url, username, secret, debug)
@@ -421,9 +475,22 @@ def main():
 
 if __name__ == '__main__':
     from module_shared import *
+    if add_nic_as_parts:
+        pci_database = os.path.join(APP_DIR, 'pci.ids')
+        if os.path.exists(pci_database):
+            with codecs.open(pci_database, "r", encoding="utf-8") as f:
+                pci_database = f.readlines()
+
     main()
     sys.exit()
 else:
     # you can use dict_output if called from external script (starter.py)
     from module_shared import *
+    if add_nic_as_parts:
+        pci_database = os.path.join(APP_DIR, 'pci.ids')
+        if os.path.exists(pci_database):
+            with codecs.open(pci_database, "r", encoding="utf-8") as f:
+                pci_database = f.readlines()
+
+
 
