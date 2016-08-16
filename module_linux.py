@@ -1,3 +1,4 @@
+import os
 import ast
 import math
 
@@ -278,6 +279,7 @@ class GetLinuxData:
                 self.devargs.update({'os': self.os})
                 self.devargs.update({'osver': ver})
                 self.devargs.update({'osverno': kernel_version})
+                return
             else:
                 cmd = 'python3 -c "import platform; raw = list(platform.dist());' \
                       'raw.append(platform.release());print (raw)"'
@@ -287,9 +289,10 @@ class GetLinuxData:
                     self.devargs.update({'os': self.os})
                     self.devargs.update({'osver': ver})
                     self.devargs.update({'osverno': kernel_version})
+                    return
                 else:
                     if self.debug:
-                        print '\t[-] Could not get OS info from host %s. Message was: %s' % (
+                        print '\t[-] 1 Could not get OS info from host %s. Message was: %s' % (
                             self.machine_name, str(data_err))
         if data_err and 'command not found' in data_err[0]:
             cmd = 'python3 -c "import platform; raw = list(platform.dist());' \
@@ -300,17 +303,18 @@ class GetLinuxData:
                 self.devargs.update({'os': self.os})
                 self.devargs.update({'osver': ver})
                 self.devargs.update({'osverno': kernel_version})
+                return
             else:
                 if self.debug:
-                    print '\t[-] Could not get OS info from host %s. Message was: %s' % (
+                    print '\t[-] 2 Could not get OS info from host %s. Message was: %s' % (
                         self.machine_name, str(data_err))
-
-
         else:
             if self.debug:
-                print '\t[-] Could not get OS info from host %s. Message was: %s' % (self.machine_name, str(data_err))
+                print '\t[-] 3 Could not get OS info from host %s. Message was: %s' % (self.machine_name, str(data_err))
+
 
     def get_cpu(self):
+        processors = self.get_cpu_num()
         cmd = 'cat /proc/cpuinfo'
         data_out, data_err = self.execute(cmd)
         if not data_err:
@@ -320,18 +324,18 @@ class GetLinuxData:
             cpuspeed = 0
             threads = None
             for rec in data_out:
-                if rec.startswith('processor'):
-                    cpus += 1
+                # if rec.startswith('processor'):
+                #     cpus += 1
                 if rec.startswith('cpu MHz'):
                     cpuspeed = int((float(rec.split(':')[1].strip())))
                 if rec.startswith('cpu cores'):
                     cores = int(rec.split(':')[1].strip())
                 if rec.startswith('siblings'):
                     threads = int(rec.split(':')[1].strip())
-            if siblings and threads:
-                processors = cpus / threads
-            else:
-                processors = cpus
+            # if siblings and threads:
+            #     processors = cpus / threads
+            # else:
+            #     processors = cpus
             self.devargs.update({'cpucount': processors})
             self.devargs.update({'cpucore': cores})
             self.devargs.update({'cpupower': cpuspeed})
@@ -339,6 +343,15 @@ class GetLinuxData:
         else:
             if self.debug:
                 print '\t[-] Could not get CPU info from host %s. Message was: %s' % (self.machine_name, str(data_err))
+
+    def get_cpu_num(self):
+        cmd = 'cat /proc/cpuinfo | grep "physical id" | sort -u | wc -l'
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            cpu_num = ''.join(data_out)
+            return cpu_num
+        else:
+            return 0
 
     def get_ip_ifconfig(self):
         cmd = '/sbin/ifconfig'
@@ -603,23 +616,60 @@ class GetLinuxData:
         if not data_err:
             for i in range(0, len(data_out), 2):
                 nic = data_out[i].strip()
-                path = data_out[i + 1].strip()
-                cmd = "cat %s/vendor; cat %s/device" % (path, path)
-                codes_out, codes_err = self.execute(cmd)
-                if not codes_err:
-                    try:
-                        codes_out = [x.split('x')[1].strip() for x in codes_out]
-                        vendor_code, model_code = codes_out
-                        nics.update({nic:{"manufacturer":vendor_code,
-                                          "name": model_code,
-                                          "serial_no": None,
-                                          "device": device_name}})
-                    except Exception as e:
-                        print e
-                else:
-                    print 'ERROR ', codes_err
+                path = self.check_nic_path(data_out[i + 1].strip())
+                vendor_code = self.get_nic_vendor_code(path)
+                vendor_subcode = self.get_nic_vendor_subcode(path)
+                model_code = self.get_nic_model_code(path)
+                model_subcode = self.get_nic_model_subcode(path)
+                nics.update({nic:{"manufacturer":vendor_code,
+                                  "name": model_code,
+                                  "serial_no": None,
+                                  "device": device_name,
+                                  "model_subcode": model_subcode,
+                                  "manufacturer_subcode": vendor_subcode}})
         else:
             if self.debug:
                 print '[!] Error in get_physical_nics(). Message was: %s' % data_err
 
         return nics
+
+    def check_nic_path(self, path):
+        path_parts = os.path.split(path)
+        # ssb patch
+        try:
+            if 'ssb' in path_parts[-1]:
+                new_path = '/'.join(path_parts[0:-1])
+                return new_path
+            else:
+                return path
+        except Exception as e:
+            print e
+
+    def get_nic_vendor_code(self, path):
+        cmd = "cat %s/vendor" % path
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            vendor_code = ''.join(data_out).strip()[2:]
+            return vendor_code
+
+    def get_nic_vendor_subcode(self, path):
+        cmd = "cat %s/subsystem_vendor" % path
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            vendor_subcode = ''.join(data_out).strip()[2:]
+            return vendor_subcode
+
+    def get_nic_model_code(self, path):
+        cmd = "cat %s/device" % path
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            model_code = ''.join(data_out).strip()[2:]
+            return model_code
+
+    def get_nic_model_subcode(self, path):
+        cmd = "cat %s/subsystem_device" % path
+        data_out, data_err = self.execute(cmd)
+        if not data_err:
+            sub_code = ''.join(data_out).strip()[2:]
+            return sub_code
+

@@ -17,7 +17,7 @@ import module_solaris as ms
 import util_ip_operations as ipop
 import util_uploader as uploader
 
-__version__ = "3.9"
+__version__ = "3.9.1"
 
 # environment and other stuff
 lock = threading.Lock()
@@ -125,44 +125,58 @@ def upload(data):
             rest.post_parts(part, 'NIC')
 
 def resolve_pci(raw):
+    """ Find manufacturer name and put all of its models and sub-models in the tmp var.
+    Tmp db is used to filter out other devices that might have same code or subcode,
+    but produced by different manufacturer"""
+
     data = raw['nic_parts']
     nic_parts = []
     for nic, part in data.items():
         vendor_code = part['manufacturer']
+        vendor_subcode = part['manufacturer_subcode']
         model_code = part['name']
+        model_subcode = part['model_subcode']
         serial = part['serial_no']
         device = part['device']
 
-        # find vendor
-        vendor_name = None
-        if vendor_code in pci_vendor_cache:
-            vendor_name = pci_vendor_cache[vendor_code]
-        else:
+        if vendor_code:
+            model_db = ''
+            check_vendor = True
+            vendor_name = ''
+            model_name = ''
+
             for record in pci_database:
-                if record.startswith(vendor_code):
-                    vendor_name = record.lstrip(vendor_code).strip()
-                    pci_vendor_cache.update({vendor_code: vendor_name})
+                if check_vendor:
+                    if record.startswith(vendor_code):
+                        vendor_name = record.lstrip(vendor_code).strip()
+                        check_vendor = False
+                else:
+                    if record.startswith('\t') or record.startswith('#'):
+                        model_db += record + '\n'
+                    else:
+                        break
 
-        # find model
-        model_name = None
-        for rec in pci_database:
-            if rec.strip().startswith(vendor_code):
-                if model_code in rec:
-                    model_name = ' '.join(rec.split()[2:])
-                    break
-        if not model_name:
-            # needed for some cards like "Wilkins Peak"
-            for rec in pci_database:
-                if rec.strip().startswith(model_code):
-                    model_name = ' '.join(rec.split()[1:])
-                    break
+            if not model_name and vendor_subcode and model_subcode:
+                search_code = "\t\t%s %s" % (vendor_subcode, model_subcode)
+                for rec in model_db.split('\n'):
+                    if rec.startswith(search_code):
+                        model_name = ' '.join(
+                            [x.strip() for x in rec.split() if x not in (vendor_subcode, model_subcode)])
+                        break
 
-        nic_parts.append({"manufacturer": vendor_name,
-                               "name": model_name,
-                               "serial_no": serial,
-                               "device": device,
-                               "type": 'NIC',
-                                'assignment': 'device'})
+            if not model_name and model_code:
+                for rec in model_db.split('\n'):
+                    if rec.startswith("\t" + model_code):
+                        model_name = ' '.join([x.strip() for x in rec.split() if x != model_code])
+                        break
+
+            nic_parts.append({"manufacturer": vendor_name,
+                                   "name": model_name,
+                                   "serial_no": serial,
+                                   "device": device,
+                                   "type": 'NIC',
+                                    'assignment': 'device'})
+
     return nic_parts
 
 def remove_stale_ips(ips, name):
