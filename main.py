@@ -17,7 +17,7 @@ import module_solaris as ms
 import util_ip_operations as ipop
 import util_uploader as uploader
 
-__version__ = "3.9.1"
+__version__ = "3.9.2"
 
 # environment and other stuff
 lock = threading.Lock()
