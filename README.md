@@ -33,9 +33,11 @@ Supported targets:
 ### Note
 ----------------------------
 
-By default, root has permissions to run dmidecode. If you are running auto-discover as non-root user, you would need following in your */etc/sudoers file.*
+By default, root has permissions to run dmidecode, hdparm and fdisk. If you are running auto-discover as non-root user, you would need following in your */etc/sudoers file.*
 
-	%your-group-here ALL = (ALL) NOPASSWD:/usr/sbin/dmidecode
+	%<user-group-here> ALL = (ALL) NOPASSWD:/usr/sbin/dmidecode,/sbin/hdparm,/sbin/fdisk
+
+
 
 If this permission is missing, auto-discovery client would not be able to find out hardware, manufacturer and serial # etc.
 
