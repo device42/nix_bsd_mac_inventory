@@ -14,10 +14,11 @@ import module_linux as ml
 import module_mac as mc
 import module_openbsd as openbsd
 import module_solaris as ms
+import module_hpux as hpux
 import util_ip_operations as ipop
 import util_uploader as uploader
 
-__version__ = "3.9.2"
+__version__ = "3.9.3"
 
 # environment and other stuff
 lock = threading.Lock()
@@ -36,7 +37,7 @@ def find_devid_by_mac(data, rest):
         if dev_id:
             return dev_id
 
-def upload(data):
+def upload(data, os=None):
     ips = []
     name = None
     dev_id = None
@@ -56,7 +57,8 @@ def upload(data):
     nic_parts = []
     for rec in data:
         if 'nic_parts' in rec:
-            nic_parts = resolve_pci(rec)
+            if os == 'linux':
+                nic_parts = resolve_pci(rec)
             data.remove(rec)
 
     # Upload device first and get name back
@@ -210,7 +212,7 @@ def get_linux_data(ip, usr, pwd):
             return data
         else:
             # Upload -----------
-            upload(data)
+            upload(data, os='linux')
 
 
 def get_solaris_data(ip, usr, pwd):
@@ -302,6 +304,24 @@ def get_aix_data(ip, usr, pwd):
             upload(data)
 
 
+def get_hpux_data(ip, usr, pwd):
+    if mod_hpux:
+        hp = hpux.GetHPUXData(ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
+                             get_serial_info, get_hardware_info, get_os_details,
+                             get_cpu_info, get_memory_info, ignore_domain, upload_ipv6, debug)
+        data = hp.main()
+        if debug:
+            lock.acquire()
+            print 'HP-UX data: '
+            for rec in data:
+                print rec
+            lock.release()
+        if DICT_OUTPUT:
+            return data
+        else:
+            # Upload -----------
+            upload(data)
+
 def process_data(data_out, ip, usr, pwd):
     msg = str(data_out).lower()
     if 'linux' in msg:
@@ -340,6 +360,12 @@ def process_data(data_out, ip, usr, pwd):
         lock.release()
         data = get_aix_data(ip, usr, pwd)
         return data
+    elif 'hp-ux' in msg:
+        lock.acquire()
+        print '[+] HP UX running @ %s' % ip
+        lock.release()
+        data = get_hpux_data(ip, usr, pwd)
+        return data
     else:
         lock.acquire()
         print '[!] Connected to SSH @ %s, but the OS cannot be determined.' % ip
@@ -370,7 +396,8 @@ def check_os(ip):
                     lock.acquire()
                     print '[*] Connecting to %s:%s as "%s"' % (ip, ssh_port, usr)
                     lock.release()
-                    ssh.connect(ip, username=usr, password=pwd, timeout=timeout, allow_agent=False, look_for_keys=False)
+                    ssh.connect(ip, username=usr, password=pwd, timeout=timeout, port=ssh_port,
+                                allow_agent=False, look_for_keys=False)
                     stdin, stdout, stderr = ssh.exec_command("uname -a")
                     data_out = stdout.readlines()
                     if data_out:

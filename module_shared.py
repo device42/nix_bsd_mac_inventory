@@ -22,6 +22,7 @@ def get_settings():
     mod_mac = cc.getboolean('modules', 'mac')
     mod_bsd = cc.getboolean('modules', 'bsd')
     mod_aix = cc.getboolean('modules', 'aix')
+    mod_hpux = cc.getboolean('modules', 'hpux')
     # settings ------------------------------------------------------------------------
     base_url = cc.get('settings', 'base_url')
     username = cc.get('settings', 'username')
@@ -56,7 +57,7 @@ def get_settings():
     threads = cc.get('options', 'threads')
     dict_output = cc.getboolean('options', 'dict_output')
 
-    return mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, exclude_ips,\
+    return mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, mod_hpux, base_url, username, secret, targets, exclude_ips,\
         use_key_file, key_file, credentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
         add_hdd_as_device_properties, add_hdd_as_parts, add_nic_as_parts, get_hardware_info, get_os_details, get_cpu_info,\
         get_memory_info, ignore_domain, ignore_virtual_machines, upload_ipv6, debug, threads, dict_output, \
@@ -67,7 +68,7 @@ def get_settings():
 caller = os.path.basename(sys._getframe().f_back.f_code.co_filename)
 
 if caller == 'main.py':
-    mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, targets, exclude_ips, use_key_file,\
+    mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, mod_hpux, base_url, username, secret, targets, exclude_ips, use_key_file,\
         key_file, credentials, ssh_port, timeout, get_serial_info, duplicate_serials, add_hdd_as_device_properties,\
         add_hdd_as_parts, add_nic_as_parts, get_hardware_info, get_os_details, get_cpu_info, get_memory_info, ignore_domain,\
         ignore_virtual_machines, upload_ipv6, debug, THREADS, DICT_OUTPUT, give_hostname_precedence, mac_lookup, \
@@ -78,7 +79,7 @@ if caller == 'main.py':
 
 else:
     if len(sys.argv) == 5:
-        mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, base_url, username, secret, xtargets, xexclude_ips,\
+        mod_linux, mod_solaris, mod_mac, mod_bsd, mod_aix, mod_hpux, base_url, username, secret, xtargets, xexclude_ips,\
             xuse_key_file, xkey_file, xcredentials, ssh_port, timeout, get_serial_info, duplicate_serials,\
             add_hdd_as_device_properties, add_hdd_as_parts, add_nic_as_parts, get_hardware_info, get_os_details, \
             get_cpu_info, get_memory_info, ignore_domain, ignore_virtual_machines, upload_ipv6, debug, THREADS, DICT_OUTPUT, \

@@ -5,6 +5,7 @@ solaris  = True
 mac      = True
 bsd      = True
 aix      = True
+hpux	 = True
 
 [settings]
 # base_url points to your Device42 server
