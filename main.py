@@ -218,7 +218,7 @@ def get_linux_data(ip, usr, pwd):
 def get_solaris_data(ip, usr, pwd):
     if mod_solaris:
         solaris = ms.GetSolarisData(ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
-                                    get_serial_info, get_hardware_info, get_os_details,
+                                    get_serial_info, get_hardware_info, get_os_details, add_hdd_as_parts,
                                     get_cpu_info, get_memory_info, ignore_domain, upload_ipv6, debug)
         data = solaris.main()
         if debug:

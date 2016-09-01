@@ -3,7 +3,7 @@ import paramiko
 
 class GetSolarisData:
     def __init__(self, ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
-                 get_serial_info, get_hardware_info, get_os_details,
+                 get_serial_info, get_hardware_info, get_os_details, add_hdd_as_parts,
                  get_cpu_info, get_memory_info, ignore_domain, upload_ipv6, debug):
         self.machine_name = ip
         self.port = int(ssh_port)
@@ -16,6 +16,7 @@ class GetSolarisData:
         self.get_serial_info = get_serial_info
         self.get_hardware_info = get_hardware_info
         self.get_os_details = get_os_details
+        self.add_hdd_as_parts = add_hdd_as_parts
         self.get_cpu_info = get_cpu_info
         self.get_memory_info = get_memory_info
         self.ignore_domain = ignore_domain
@@ -26,6 +27,7 @@ class GetSolarisData:
         self.conn = None
         self.sysdata = {}
         self.alldata = []
+        self.hdd_parts = []
 
     def main(self):
         self.connect()
@@ -34,6 +36,9 @@ class GetSolarisData:
         self.get_RAM()
         self.alldata.append(self.sysdata)
         self.get_IP()
+        if self.add_hdd_as_parts:
+            self.alldata.append({'hdd_parts': self.hdd_parts})
+        self.get_hdd()
         return self.alldata
 
     def connect(self):
@@ -148,7 +153,7 @@ class GetSolarisData:
                         nic = a.split()[0].strip(':')
                         ip = i.split()[1]
                         if ip not in ('', ' ') and nic not in 'lo0':
-                            mac = macs[nic]
+                            mac = macs.get(nic)
                             nicdata = {}
                             macdata = {}
                             if not mac:
@@ -264,3 +269,65 @@ class GetSolarisData:
                             self.sysdata.update({'uuid': uuid})
                 else:
                     print 'Error: ', data_err
+
+    def get_hdd(self):
+        stdin, stdout, stderr = self.ssh.exec_command("iostat -En")
+        data_out = stdout.readlines()
+        data_err = stderr.readlines()
+        device_name = self.get_name()
+        if not data_err:
+            hdds = []
+            hdd = []
+            for rec in data_out:
+                if 'Soft Errors:' in rec:
+                    if len(hdd) != 0:
+                        hdds.append(hdd)
+                        hdd = []
+                        hdd.append(rec.strip())
+                    else:
+                        hdd.append(rec.strip())
+                else:
+                    hdd.append(rec.strip())
+
+            hdds.append(hdd)
+
+            if hdds:
+                for hdd in hdds:
+                    hdd_part = {}
+                    for rec in hdd:
+                        hdd_part.update({'type': 'hdd'})
+                        hdd_part.update({'assignment': 'device'})
+                        hdd_part.update({'device': device_name})
+                        if 'Product:' in rec:
+                            try:
+                                hdd_model = rec.split('Product:')[1].split(':')[0].strip('Revision').strip()
+                                hdd_part.update({'name': hdd_model})
+                            except Exception as e:
+                                if self.debug:
+                                    print '\t[!] Exception in get_hdd(). Message was: %s' % str(e)
+                        if 'Serial No:' in rec:
+                            try:
+                                hdd_serial = rec.split('Serial No:')[1].split(':')[0].strip()
+                                hdd_part.update({'serial_no': hdd_serial})
+                            except Exception as e:
+                                if self.debug:
+                                    print '\t[!] Exception in get_hdd(). Message was: %s' % str(e)
+                        if 'Size:' in rec:
+                            try:
+                                hdd_size_raw  = rec.split('Size:')[1].split(':')[0].split('<')[0].strip()
+                                if hdd_size_raw.endswith('TB'):
+                                    hdd_size  = float(hdd_size_raw.rstrip('TB').strip()) * 1024
+                                else:
+                                    hdd_size = hdd_size_raw.rstrip('GB').strip()
+                                hdd_part.update({'hddsize': hdd_size})
+                            except Exception as e:
+                                if self.debug:
+                                    print '\t[!] Exception in get_hdd(). Message was: %s' % str(e)
+
+                    if hdd_part.get('serial_no') not in ('', None):
+                        self.hdd_parts.append(hdd_part)
+                self.sysdata.update({'hddcount': len(self.hdd_parts)})
+
+        else:
+            print 'Error: %s' % data_err
+
