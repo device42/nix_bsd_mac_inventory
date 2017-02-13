@@ -122,7 +122,7 @@ class Rest:
                 print msg
             response = self.fetcher(url)
             if isinstance(response, dict) and 'ip_addresses' in response:
-                fetched_ips = [x['ip'] for x in response['ip_addresses'] if 'ip' in x]
+                fetched_ips = [x['ip'] for x in response['ip_addresses'] if 'ip' in x and x['label'] != 'mgmt']
                 return fetched_ips
 
     def delete_ip(self, ip):
