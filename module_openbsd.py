@@ -177,7 +177,7 @@ class GetBSDData:
             os = data[0].strip()
             self.sysdata.update({'os': os})
             version = data[1].strip()
-            self.sysdata.update({'osver': version})
+            self.sysdata.update({'osver': version if version else 'D42_NULL'})
             kernel_version = data[2].strip()
             self.sysdata.update({'osverno': kernel_version})
             self.sysdata.update({'name': self.device_name})

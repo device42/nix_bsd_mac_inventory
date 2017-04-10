@@ -123,7 +123,7 @@ class GetHPUXData:
                     os_version = rec.split(':')[1].strip()
                     osver = ' '.join(os_version.split()[1:]).strip()
                     self.sysdata.update({'os': 'hp-ux'})
-                    self.sysdata.update({'osver': osver})
+                    self.sysdata.update({'osver': osver if osver else 'D42_NULL'})
         else:
             print '[!] Error in get_sys_1(). Message was: %s' % data_err
 

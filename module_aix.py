@@ -60,7 +60,7 @@ class GetAixData:
 
             if not data_err:
                 osver = data_out[-1].strip()
-                self.sysdata.update({'osver': osver})
+                self.sysdata.update({'osver': osver if osver else 'D42_NULL'})
                 self.sysdata.update({'os': 'AIX'})
                 disknum = 0
 

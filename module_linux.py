@@ -345,7 +345,7 @@ class GetLinuxData:
             if 'command not found' not in data_out[0]:  # because some distros sport python3 by default!
                 self.os, ver, release, kernel_version = ast.literal_eval(data_out[0])
                 self.devargs.update({'os': self.os})
-                self.devargs.update({'osver': ver})
+                self.devargs.update({'osver': ver if ver else 'D42_NULL'})
                 self.devargs.update({'osverno': kernel_version})
                 return
             else:

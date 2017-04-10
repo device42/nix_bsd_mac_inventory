@@ -117,7 +117,7 @@ class GetMacData:
                                 self.devargs.update({'os': os})
                             if 'ProductVersion' in rec:
                                 osver = rec.split(':')[1].strip()
-                                self.devargs.update({'osver': osver})
+                                self.devargs.update({'osver': osver if osver else 'D42_NULL'})
                 else:
                     if self.debug:
                         print data_err

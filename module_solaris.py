@@ -194,7 +194,7 @@ class GetSolarisData:
                 if 'Release ' in rec:
                     if self.get_os_details:
                         version = rec.split('=')[1].strip()
-                        self.sysdata.update({'osver': version})
+                        self.sysdata.update({'osver': version if version else 'D42_NULL'})
                 if 'Node ' in rec:
                     name = rec.split('=')[1].strip()
                     self.sysdata.update({'name': name})
