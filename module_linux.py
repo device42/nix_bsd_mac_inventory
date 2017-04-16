@@ -86,6 +86,7 @@ class GetLinuxData:
             self.get_os()
         self.get_hdd()
         self.get_ip_ipaddr()
+        self.get_ip_ipmi()
         self.alldata.append(self.devargs)
         if self.add_hdd_as_parts:
             self.alldata.append({'hdd_parts': self.hdd_parts})
@@ -436,6 +437,26 @@ class GetLinuxData:
             return cpu_num
         else:
             return 0
+
+    def get_ip_ipmi(self):
+        data_out, data_err = self.execute('ipmitool lan print 1')
+        mac = None
+        ip = None
+        if not data_err:
+            for row in data_out.split('\n'):
+                if 'MAC Address' in row:
+                    mac_data = row.split()
+                    if len(mac_data) > 2:
+                        mac = mac_data[3]
+                elif 'IP Address' in row and 'Source' not in row:
+                    ip_data = row.split(':')
+                    if len(ip_data) > 1:
+                        ip = ip_data[1].strip()
+            if ip and mac:
+                self.ip_to_json('ipmi', mac, ip, '')
+        else:
+            if self.debug:
+                print '\t[-] Could not get IPMI IP info from host %s. Message was: %s' % (self.machine_name, str(data_err))
 
     def get_ip_ifconfig(self):
         if 'ifconfig' in self.paths:
