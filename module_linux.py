@@ -443,7 +443,7 @@ class GetLinuxData:
         mac = None
         ip = None
         if not data_err:
-            for row in data_out.split('\n'):
+            for row in data_out:
                 if 'MAC Address' in row:
                     mac_data = row.split()
                     if len(mac_data) > 2:
