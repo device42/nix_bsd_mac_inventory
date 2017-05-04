@@ -137,16 +137,16 @@ class GetLinuxData:
     def execute(self, cmd, needroot=False):
         if needroot:
             if self.root:
-                stdin, stdout, stderr = self.ssh.exec_command(cmd)
+                stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
             else:
                 if 'sudo' in self.paths:
                     cmd_sudo = "%s/sudo -S -p '' %s" % (self.paths['sudo'],cmd)
                 cmd_sudo = "sudo -S -p '' %s" % cmd
-                stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
+                stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo, timeout=30)
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
         else:
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
         data_err = stderr.readlines()
         try:
             data_out = stdout.readlines()
@@ -154,7 +154,7 @@ class GetLinuxData:
             data_x = stdout.read()
             data_out = data_x.split('\n')
         if data_err and 'sudo: command not found' in str(data_err):
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
             data_err = stderr.readlines()
             data_out = stdout.readlines()
         return data_out, data_err

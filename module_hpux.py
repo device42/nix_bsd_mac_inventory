@@ -70,11 +70,11 @@ class GetHPUXData:
     def execute(self, cmd, need_sudo=False):
         if need_sudo and not self.root: # not working currently, maybe in the future
             cmd_sudo = "sudo -S -p '' %s" % cmd
-            stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo)
+            stdin, stdout, stderr = self.ssh.exec_command(cmd_sudo, timeout=30)
             stdin.write('%s\n' % self.password)
             stdin.flush()
         else:
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
 
         data_err = stderr.readlines()
         data_out = stdout.readlines()

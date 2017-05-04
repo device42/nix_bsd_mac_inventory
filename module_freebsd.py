@@ -57,7 +57,7 @@ class GetBSDData:
 
     def get_CPU(self):
         if self.get_cpu_info:
-            stdin, stdout, stderr = self.ssh.exec_command(" sysctl -n hw.model sysctl hw.ncpu")
+            stdin, stdout, stderr = self.ssh.exec_command(" sysctl -n hw.model sysctl hw.ncpu", timeout=30)
             data_out = stdout.readlines()
             data_err = stderr.readlines()
             if not data_err:
@@ -71,7 +71,7 @@ class GetBSDData:
 
     def get_RAM(self):
         if self.get_memory_info:
-            stdin, stdout, stderr = self.ssh.exec_command("grep memory /var/run/dmesg.boot")
+            stdin, stdout, stderr = self.ssh.exec_command("grep memory /var/run/dmesg.boot", timeout=30)
             data_out = stdout.readlines()
             data_err = stderr.readlines()
             if not data_err:
@@ -83,7 +83,7 @@ class GetBSDData:
                 print 'Error: ', data_err
 
     def get_name(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname -f")
+        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname -f", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -99,7 +99,7 @@ class GetBSDData:
             print 'Error: ', data_err
 
     def get_IP(self):
-        stdin, stdout, stderr = self.ssh.exec_command("ifconfig")
+        stdin, stdout, stderr = self.ssh.exec_command("ifconfig", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -167,7 +167,7 @@ class GetBSDData:
 
     def get_sys(self):
         self.device_name = self.get_name()
-        stdin, stdout, stderr = self.ssh.exec_command("uname -srK")
+        stdin, stdout, stderr = self.ssh.exec_command("uname -srK", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -183,7 +183,7 @@ class GetBSDData:
         else:
             print 'Error: ', data_err
 
-        stdin, stdout, stderr = self.ssh.exec_command("sysctl -n kern.vm_guest ; sysctl -n kern.hostuuid")
+        stdin, stdout, stderr = self.ssh.exec_command("sysctl -n kern.vm_guest ; sysctl -n kern.hostuuid", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:

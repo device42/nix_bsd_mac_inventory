@@ -54,7 +54,7 @@ class GetAixData:
         if self.get_cpu_info:
             cmd = 'lsconf | egrep -i "system model|machine serial|processor type|number of processors|' \
                   'processor clock speed|cpu type|kernel type|^memory size|disk drive|host name"; oslevel'
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
             data_out = stdout.readlines()
             data_err = stderr.readlines()
 
@@ -98,7 +98,7 @@ class GetAixData:
 
     def get_MAC(self, nicname):
         cmd = "entstat -d %s| grep -i 'hardware address'" % nicname
-        stdin, stdout, stderr = self.ssh.exec_command(cmd)
+        stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -109,7 +109,7 @@ class GetAixData:
             return None
 
     def get_IP(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig -a")
+        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig -a", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
 
@@ -158,7 +158,7 @@ class GetAixData:
 
     def get_hdd_size(self, hddname):
         cmd = "bootinfo -s %s" % hddname
-        stdin, stdout, stderr = self.ssh.exec_command(cmd)
+        stdin, stdout, stderr = self.ssh.exec_command(cmd, timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:

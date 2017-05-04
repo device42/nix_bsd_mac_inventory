@@ -76,7 +76,7 @@ class GetMacData:
         return int(v)
 
     def get_name(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname")
+        stdin, stdout, stderr = self.ssh.exec_command("/bin/hostname", timeout=30)
         data_err = stderr.readlines()
         data_out = stdout.readlines()
         device_name = None
@@ -103,7 +103,7 @@ class GetMacData:
             self.device_name = device_name
             # GET SW_DATA
             if self.get_os_details:
-                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/bin/sw_vers")
+                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/bin/sw_vers", timeout=30)
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
                 data_err = stderr.readlines()
@@ -124,7 +124,7 @@ class GetMacData:
 
             # GET KERNEL VERSION
             if self.get_os_details:
-                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/bin/uname -r")
+                stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/bin/uname -r", timeout=30)
                 stdin.write('%s\n' % self.password)
                 stdin.flush()
                 data_err = stderr.readlines()
@@ -138,7 +138,7 @@ class GetMacData:
                         print data_err
 
             # GET HW DATA
-            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/system_profiler SPHardwareDataType")
+            stdin, stdout, stderr = self.ssh.exec_command("sudo -S -p '' /usr/sbin/system_profiler SPHardwareDataType", timeout=30)
             stdin.write('%s\n' % self.password)
             stdin.flush()
             data_err = stderr.readlines()
@@ -177,7 +177,7 @@ class GetMacData:
         self.alldata.append(self.devargs)
 
     def get_IP(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/sbin/ifconfig")
+        stdin, stdout, stderr = self.ssh.exec_command("/sbin/ifconfig", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:

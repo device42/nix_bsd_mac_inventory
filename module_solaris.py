@@ -58,7 +58,7 @@ class GetSolarisData:
 
     def get_CPU(self):
         if self.get_cpu_info:
-            stdin, stdout, stderr = self.ssh.exec_command("/usr/bin/kstat cpu_info")
+            stdin, stdout, stderr = self.ssh.exec_command("/usr/bin/kstat cpu_info", timeout=30)
             data_out = stdout.readlines()
             data_err = stderr.readlines()
             cpupower = None
@@ -83,7 +83,7 @@ class GetSolarisData:
 
     def get_RAM(self):
         if self.get_memory_info:
-            stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf")
+            stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf", timeout=30)
             data_out = stdout.readlines()
             data_err = stderr.readlines()
             if not data_err:
@@ -95,7 +95,7 @@ class GetSolarisData:
                 print 'Error: ', data_err
 
     def get_name(self):
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/bin/hostname")
+        stdin, stdout, stderr = self.ssh.exec_command("/usr/bin/hostname", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -105,7 +105,7 @@ class GetSolarisData:
 
     def get_macs(self):
         macs = {}
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dladm show-phys -m")
+        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/dladm show-phys -m", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -118,7 +118,7 @@ class GetSolarisData:
                 macs.update({nic: address})
             return macs
         else:
-            stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/arp -a")
+            stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/arp -a", timeout=30)
             data_out = stdout.readlines()
             data_err = stderr.readlines()
             if not data_err:
@@ -136,7 +136,7 @@ class GetSolarisData:
 
     def get_IP(self):
         macs = self.get_macs()
-        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig -a")
+        stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig -a", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -178,7 +178,7 @@ class GetSolarisData:
             print 'Error: ', data_err
 
     def get_sys(self):
-        stdin, stdout, stderr = self.ssh.exec_command("uname -X")
+        stdin, stdout, stderr = self.ssh.exec_command("uname -X", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
@@ -201,12 +201,12 @@ class GetSolarisData:
         else:
             print 'Error: ', data_err
 
-        stdin, stdout, stderr = self.ssh.exec_command("uname -p")
+        stdin, stdout, stderr = self.ssh.exec_command("uname -p", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
             if data_out[0].strip(" \n") == "sparc":
-                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf")
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf", timeout=30)
                 data_out = stdout.readlines()
                 data_err  = stderr.readlines()
                 if not data_err:
@@ -218,7 +218,7 @@ class GetSolarisData:
                 else:
                     print 'Error: ', data_err
 
-                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/sneep")
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/sneep", timeout=30)
                 data_out = stdout.readlines()
                 data_err  = stderr.readlines()
                 if not data_err:
@@ -227,7 +227,7 @@ class GetSolarisData:
                 else:
                     print 'Error: ', data_err
 
-                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf -b")
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/prtconf -b", timeout=30)
                 data_out = stdout.readlines()
                 data_err  = stderr.readlines()
                 if not data_err:
@@ -243,7 +243,7 @@ class GetSolarisData:
                 self.sysdata.update({'uuid': '00000000-0000-0000-0000-000000000000'})
 
             else:
-                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/smbios -t SMB_TYPE_SYSTEM")
+                stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/smbios -t SMB_TYPE_SYSTEM", timeout=30)
                 data_out = stdout.readlines()
                 data_err = stderr.readlines()
                 if not data_err:
@@ -271,7 +271,7 @@ class GetSolarisData:
                     print 'Error: ', data_err
 
     def get_hdd(self):
-        stdin, stdout, stderr = self.ssh.exec_command("iostat -En")
+        stdin, stdout, stderr = self.ssh.exec_command("iostat -En", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         device_name = self.get_name()

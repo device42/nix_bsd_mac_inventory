@@ -208,6 +208,7 @@ def get_linux_data(ip, usr, pwd):
             for rec in data:
                 print rec
             lock.release()
+        linux.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -225,6 +226,7 @@ def get_solaris_data(ip, usr, pwd):
             lock.acquire()
             print '\nSolaris data: ', data
             lock.release()
+        solaris.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -246,6 +248,7 @@ def get_mac_data(ip, usr, pwd):
             lock.acquire()
             print 'Mac OS X data: ', data
             lock.release()
+        mac.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -255,14 +258,15 @@ def get_mac_data(ip, usr, pwd):
 
 def get_freebsd_data(ip, usr, pwd):
     if mod_bsd:
-        solaris = freebsd.GetBSDData(ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
+        fbsd = freebsd.GetBSDData(ip, ssh_port, timeout, usr, pwd, use_key_file, key_file,
                                      get_serial_info, get_hardware_info, get_os_details,
                                      get_cpu_info, get_memory_info, ignore_domain, upload_ipv6, debug)
-        data = solaris.main()
+        data = fbsd.main()
         if debug:
             lock.acquire()
             print 'FreeBSD data: ', data
             lock.release()
+        fbsd.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -280,6 +284,7 @@ def get_openbsd_data(ip, usr, pwd):
             lock.acquire()
             print 'OpenBSD data: ', data
             lock.release()
+        bsd.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -297,6 +302,7 @@ def get_aix_data(ip, usr, pwd):
             lock.acquire()
             print 'AIX data: ', data
             lock.release()
+        ibm.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -316,6 +322,7 @@ def get_hpux_data(ip, usr, pwd):
             for rec in data:
                 print rec
             lock.release()
+        hp.ssh.close()
         if DICT_OUTPUT:
             return data
         else:
@@ -398,11 +405,12 @@ def check_os(ip):
                     lock.release()
                     ssh.connect(ip, username=usr, password=pwd, timeout=timeout, port=ssh_port,
                                 allow_agent=False, look_for_keys=False)
-                    stdin, stdout, stderr = ssh.exec_command("uname -a")
+                    stdin, stdout, stderr = ssh.exec_command("uname -a", timeout=30)
                     data_out = stdout.readlines()
                     if data_out:
                         success = True
                         data = process_data(data_out, ip, usr, pwd)
+                        ssh.close()
                         return data
                     else:
                         lock.acquire()
@@ -435,10 +443,11 @@ def check_os(ip):
                 pwd = None
             print '[*] Connecting to %s:%s as "%s" using key file.' % (ip, ssh_port, usr)
             ssh.connect(ip, username=usr, key_filename=key_file, timeout=timeout)
-            stdin, stdout, stderr = ssh.exec_command("uname -a")
+            stdin, stdout, stderr = ssh.exec_command("uname -a", timeout=30)
             data_out = stdout.readlines()
             if data_out:
                 data = process_data(data_out, ip, usr, pwd)
+                ssh.close()
                 return data
 
             else:
@@ -461,6 +470,8 @@ def check_os(ip):
                 print '\n[!] Error: Could not login probably due to the wrong username or key file.'
             else:
                 print e
+
+    ssh.close()
 
 
 def main():
@@ -493,25 +504,25 @@ def main():
                     q.put(ip)
             while not q.empty():
                 tcount = threading.active_count()
-                if tcount < int(THREADS):
+                if tcount < int(THREADS) + 1:
                     ip = q.get()
                     p = threading.Thread(target=check_os, args=(str(ip),))
                     p.setDaemon(True)
                     p.start()
                 else:
                     time.sleep(0.5)
-            else:
-                tcount = threading.active_count()
-                while tcount > 1:
-                    time.sleep(2)
-                    tcount = threading.active_count()
-                    msg = '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
-                    lock.acquire()
-                    print msg
-                    lock.release()
 
-                msg = '\n[!] Done!'
+            tcount = threading.active_count()
+            while tcount > 1:
+                time.sleep(2)
+                tcount = threading.active_count()
+                msg = '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
+                lock.acquire()
                 print msg
+                lock.release()
+
+            msg = '\n[!] Done!'
+            print msg
 
 
 if __name__ == '__main__':
