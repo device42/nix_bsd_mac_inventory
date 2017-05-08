@@ -474,6 +474,26 @@ def check_os(ip):
     ssh.close()
 
 
+class Worker(threading.Thread):
+    def __init__(self, queue):
+        threading.Thread.__init__(self)
+        self._queue = queue
+
+    def run(self):
+        while not self._queue.empty():
+            ip = self._queue.get()
+            check_os(str(ip))
+
+
+def build_workers_pool(queue, size):
+    workers = []
+    for _ in range(size):
+        worker = Worker(queue)
+        worker.setDaemon(True)
+        worker.start()
+        workers.append(worker)
+    return workers
+
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(float(timeout))
@@ -502,24 +522,26 @@ def main():
             else:
                 for ip in ip_scope:
                     q.put(ip)
-            while not q.empty():
-                tcount = threading.active_count()
-                if tcount < int(THREADS) + 1:
-                    ip = q.get()
-                    p = threading.Thread(target=check_os, args=(str(ip),))
-                    p.setDaemon(True)
-                    p.start()
-                else:
-                    time.sleep(0.5)
 
-            tcount = threading.active_count()
-            while tcount > 1:
-                time.sleep(2)
-                tcount = threading.active_count()
-                msg = '[_] Waiting for threads to finish. Current thread count: %s' % str(tcount)
-                lock.acquire()
-                print msg
-                lock.release()
+            workers = build_workers_pool(q, int(THREADS))
+
+            try:
+                while True:
+                    workers_alive = 0
+                    for worker in workers:
+                        if worker.isAlive():
+                            workers_alive += 1
+                    if workers_alive > 0:
+                        time.sleep(2)
+                    else:
+                        break
+            except (KeyboardInterrupt, SystemExit):
+                print 'Discovery has been terminated.'
+                workers_alive = 0
+                for worker in workers:
+                    if worker.isAlive():
+                        workers_alive += 1
+                print '%d threads were alive.' % workers_alive
 
             msg = '\n[!] Done!'
             print msg
