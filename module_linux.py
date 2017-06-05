@@ -61,7 +61,6 @@ class GetLinuxData:
         self.device_name = None
         self.os = None
         self.paths = {}
-
         self.nics = []
         self.alldata = []
         self.devargs = {}
@@ -174,7 +173,8 @@ class GetLinuxData:
     def to_ascii(s):
         try:
             return s.encode('ascii', 'ignore')
-        except:
+        except Exception as err:
+            print '[?] to_ascii exception: ' + str(err)
             return None
 
     @staticmethod
@@ -571,7 +571,9 @@ class GetLinuxData:
                             rec_index = data_out.index(rec)
                             mac_word = data_out[rec_index + 1]
                             if 'link/ether' in mac_word:
-                                _, mac, _, _ = mac_word.split()
+                                parts = mac_word.split()
+                                if len(parts) >= 4:
+                                    mac = parts[1]
                             if nic != 'lo' and mac:
                                 macmap.update({nic: mac})
                                 if self.add_nic_as_parts:
@@ -685,8 +687,8 @@ class GetLinuxData:
                         self.devargs.update({'hddsize': size})
                 hdd_names.append(disk_name)
                 self.disk_sizes.update({disk_name: size})
-            except Exception as e:
-                print e
+            except Exception as err:
+                print '[?] get_hdd_names exception: ' + str(err)
 
         return hdd_names
 
@@ -768,8 +770,8 @@ class GetLinuxData:
                 return new_path
             else:
                 return path
-        except Exception as e:
-            print e
+        except Exception as err:
+            print '[?] check_nic_path exception: ' + str(err)
 
     def get_nic_vendor_code(self, path):
         if 'cat' in self.paths:

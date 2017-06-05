@@ -428,6 +428,9 @@ def check_os(ip):
                     lock.release()
 
                 except Exception, e:
+                    import traceback
+                    type_, value_, traceback_ = sys.exc_info()
+                    print traceback.format_tb(traceback_)
                     print e
     else:
         if credentials.lower() in ('none', 'false', 'true'):
@@ -469,6 +472,9 @@ def check_os(ip):
             if str(e) == 'not a valid EC private key file':
                 print '\n[!] Error: Could not login probably due to the wrong username or key file.'
             else:
+                import traceback
+                type_, value_, traceback_ = sys.exc_info()
+                print traceback.format_tb(traceback_)
                 print e
 
     ssh.close()
