@@ -135,45 +135,41 @@ class GetSolarisData:
                 print 'Error: ', data_err
 
     def get_IP(self):
+        nic = None
         macs = self.get_macs()
         stdin, stdout, stderr = self.ssh.exec_command("/usr/sbin/ifconfig -a", timeout=30)
         data_out = stdout.readlines()
         data_err = stderr.readlines()
         if not data_err:
             name = self.get_name()
-            n = 0
-            for x in range(len(data_out)):
-                raw = data_out[n:n + 2]
-                if raw:
-                    try:
-                        a, i = raw
-                    except ValueError:
-                        pass
-                    else:
-                        nic = a.split()[0].strip(':')
-                        ip = i.split()[1]
-                        if ip not in ('', ' ') and nic not in 'lo0':
-                            mac = macs.get(nic)
-                            nicdata = {}
-                            macdata = {}
-                            if not mac:
-                                mac = ''
+            for num in range(len(data_out)):
+                row = data_out[num]
+                stripped_row = row.strip()
+                if 'flags=' in row:
+                    nic = stripped_row.split(':')[0]
+                if nic and stripped_row.startswith('inet'):
+                    ip = stripped_row.split()[1]
+                    if ip not in ('', ' ') and not nic.startswith('lo'):
+                        mac = macs.get(nic)
+                        nicdata = {}
+                        macdata = {}
+                        if not mac:
+                            mac = ''
 
-                            if '/' in ip:  # ipv6
-                                ip = ip.split('/')[0]
+                        if '/' in ip:  # ipv6
+                            ip = ip.split('/')[0]
 
-                            nicdata.update({'ipaddress': ip})
-                            nicdata.update({'macaddress': mac})
-                            nicdata.update({'device': name})
-                            nicdata.update({'tag': nic})
-                            self.alldata.append(nicdata)
+                        nicdata.update({'ipaddress': ip})
+                        nicdata.update({'macaddress': mac})
+                        nicdata.update({'device': name})
+                        nicdata.update({'tag': nic})
+                        self.alldata.append(nicdata)
 
-                            if mac != '':
-                                macdata.update({'macaddress': mac})
-                                macdata.update({'port_name': nic})
-                                macdata.update({'device': name})
-                                self.alldata.append(macdata)
-                n += 2
+                        if mac != '':
+                            macdata.update({'macaddress': mac})
+                            macdata.update({'port_name': nic})
+                            macdata.update({'device': name})
+                            self.alldata.append(macdata)
         else:
             print 'Error: ', data_err
 
