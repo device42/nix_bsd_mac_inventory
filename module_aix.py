@@ -89,7 +89,13 @@ class GetAixData:
                         # self.sysdata.update({'hddsize':hddsize})
                     if 'Host Name' in x:
                         devicename = x.split()[-1].strip()
-                        self.name = devicename
+                        if self.ignore_domain:
+                            if '.' in devicename:
+                                self.name = devicename.split('.')[0]
+                            else:
+                                self.name = devicename
+                        else:
+                            self.name = devicename
                         self.sysdata.update({'name': self.name})
 
                 self.sysdata.update({'hddcount': disknum})
